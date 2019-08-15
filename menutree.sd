@@ -1,0 +1,359 @@
+%%
+Screen
+        Type            = Detail
+        Name            = "menutree"
+        Domain          = "dummy"
+
+        ScreenSize      = "140x25"
+        Resizable       = True
+
+        Statusbar       = False
+        Iconline        = 0
+
+        Local ID        l_lastMenuItemID = 0 ;
+        string          l_screen;
+        string          l_continue_1[3];
+        string          l_current[32];
+
+
+
+        ID Function getNextMenuItemID()
+
+
+Style Definition
+  Button style
+    {
+      Contentalignment = Middle
+      backgroundcolor  = "Black"
+      foregroundcolor  = "Blue"
+    }  tagged button_style
+
+Functions
+  "EXIT"  sequence "popup" tagged exit_fn ;
+  "button_pressed" continue
+                      Begin
+                        do display_correct_rating_screen
+                      END;
+
+  "popup"  Continue Begin
+                      l_continue_1 = Dialog("EXITING SCIPS","warning.bmp","You are About to Leave SCIPS","Yes","No")
+                                      switch (l_continue_1)
+                                         Case "Yes" : function =  "bye"
+                                        end
+                    end ;
+
+  "Bye"   Stop;           /* Terminate this session */
+          Stop;
+
+
+Event Definition
+  Default EventHandler
+      {
+         "REMOVE_SCREEN"  {
+                             function = "button_pressed"
+                             abort ()
+                          }
+      }
+
+
+Menu Definition
+
+Toolbar Definition
+
+Screen Entry
+
+        -- Add some menus into our fictious menu database
+        Do CreateMenuDatabase()
+
+        -- Expand the top level menu
+        Do ExpandMenuItem(0) ;
+
+        do display_intro_screen;
+
+Screen
+        Tagged MAIN_SCREEN
+        Properties {
+                LayoutType = row
+                FontSize = 11
+                Transparent = False
+                Borderstyle = None
+                BorderWidth = 10
+                Layoutconstraints = stretch
+                backgroundimagename = "quotebackground.jpg"
+        }
+{
+Panel/hidden
+        {
+          Fields
+               Function at 1,1 ;
+        }
+
+Panel at 1,1 to 10,35
+        Properties {
+                LayoutType = SCREEN
+                Borderwidth = 3
+                BorderStyle = Plain
+
+        }
+{
+Panel at 1,1 to 10,35
+        Properties {
+                LayoutType = COLUMN
+                Borderwidth = 1
+                BorderStyle = Plain
+
+        }
+        Events {
+                 adjustment
+                   {
+
+                   }
+               }
+        {
+         Components
+           guidetext at 1,1
+             properties
+               {
+                 text = "Quote Navigator"
+                 fontsize = 14
+                 fontstyle = BOLD
+                 fontname = "TIME-Roman"
+               }
+       }
+
+
+Panel at 3,1 to 25,35
+        Properties {
+                LayoutType = column
+                Borderwidth = 1
+                BorderStyle = Plain
+
+        }
+        Events {
+                 adjustment
+                   {
+
+                   }
+               }
+
+        {Components
+                Tree at 1,1
+                        Tagged T_MENU_TREE
+                        Properties {
+                                BorderWidth = 5
+                                BorderStyle = None
+                                LayoutConstraints = STRETCH
+                        }
+                        Events {
+                                ItemStateChanged --= Call_correct_screen(InvokeFunction(T_MENU_TREE,"getValue"))
+                                  {
+                                        Do SelectMenuItem(Val(EVENT.VALUE))
+                                  }
+
+                                TreeExpanded
+                                  {
+                                        -- Only expand if we have not expanded before
+                                        If EVENT.VALUE[1] = "+" Then
+                                                Do ExpandMenuItem(Val(EVENT.VALUE))
+                                  }
+                               }
+         }
+}
+Panel at 1,1 to 25, 135 tagged Right_side_panel
+  Properties
+    {
+      text            = "Display"
+      layouttype      = screen
+      Borderwidth = 3
+    }
+
+BEGIN
+
+END  --outside panel
+
+} --end screen
+
+
+PostUpdate
+
+Screen Exit
+
+Procedure Definition
+
+procedure display_correct_rating_screen
+
+BEGIN
+  if event.value = "Standard" then
+    {
+      Local File F_MENU_ITEM = Alias for MENU_ITEM ;
+      ID A_ITEM_ID;
+
+      Access F_MENU_ITEM,
+         Set F_MENU_ITEM:ITEM_ID = A_ITEM_ID, Generic
+
+      l_current = "Standard"
+      A_ITEM_ID = 1
+--      A_ITEM_ID = 3
+      InvokeProcedure(T_MENU_TREE, "select", str(A_item_id) )
+      Do ExpandMenuItem(A_item_ID)
+
+      postevent("agtmt001","REMOVE_SCREEN")
+      display screen "agtmt010" inside Right_side_panel
+      postevent("agtmt010","current_line_of_business","5")
+    }
+  if event.value = "Chatham Square" then
+    {
+      Local File F_MENU_ITEM = Alias for MENU_ITEM ;
+      ID A_ITEM_ID;
+
+      Access F_MENU_ITEM,
+         Set F_MENU_ITEM:ITEM_ID = A_ITEM_ID, Generic
+
+      l_current = "Chatham Square"
+      A_ITEM_ID = 3
+      InvokeProcedure(T_MENU_TREE, "select", str(A_item_id) )
+      postevent("agtmt001","REMOVE_SCREEN")
+      display screen "agtmt010" inside Right_side_panel
+      postevent("agtmt010","current_line_of_business","50")
+    }
+  if event.value = "Display_Main" then    --used when rating send a message back to rediplay main screen.
+    {
+      postevent("agtmt010","REMOVE_SCREEN")
+      display screen "agtmt001" inside Right_side_panel
+    }
+
+END
+
+procedure display_intro_screen
+
+BEGIN
+  display screen "agtmt001" inside Right_side_panel -- with initial function "search"
+END
+
+
+Procedure ExpandMenuItem(ID A_PARENT_ITEM_ID)
+
+BEGIN
+
+        Local File F_MENU_ITEM = Alias for MENU_ITEM ;
+
+        Access F_MENU_ITEM,
+           Set F_MENU_ITEM:PARENT_ITEM_ID = A_PARENT_ITEM_ID, Using Second Index, Generic
+
+        -- Remove the loading node
+        InvokeProcedure(T_MENU_TREE, "removeItem", "Loading " + Str(A_PARENT_ITEM_ID))
+
+        -- Add the top level node of the tree
+        If A_PARENT_ITEM_ID = 0 Then
+           InvokeProcedure(T_MENU_TREE, "addNode", "", "folder_open.gif", "folder_closed.gif", "Farmers Insurance Company of Flemington", "+0")
+
+        -- Add all the menu items for the given parent
+        While F_MENU_ITEM:PARENT_ITEM_ID = A_PARENT_ITEM_ID {
+
+                -- If we are adding a menu
+                If F_MENU_ITEM:ITEM_TYPE = "M" Then {
+
+                        -- Add a node for the menu adding a + to it's value to indicate we have not yet expanded it
+                        InvokeProcedure(T_MENU_TREE, "addNode", "+" + Str(F_MENU_ITEM:PARENT_ITEM_ID), "folder_open.gif", "folder_closed.gif", F_MENU_ITEM:ITEM_NAME, "+" + Str(F_MENU_ITEM:ITEM_ID))
+
+                        -- Add a "loading" leaf so we can expand the node in the tree
+                        InvokeProcedure(T_MENU_TREE, "addLeaf", "+" + Str(F_MENU_ITEM:ITEM_ID), "", "Loading...", "Loading " + Str(F_MENU_ITEM:ITEM_ID))
+                }
+                Else {
+                        InvokeProcedure(T_MENU_TREE, "addLeaf", "+" + Str(F_MENU_ITEM:PARENT_ITEM_ID), "", F_MENU_ITEM:ITEM_NAME, Str(F_MENU_ITEM:ITEM_ID))
+                }
+
+                Next F_MENU_ITEM
+        }
+
+        -- Remove the + from the node we have just expanded so we know we have expanded it
+        InvokeProcedure(T_MENU_TREE, "setItemValue", "+" + Str(A_PARENT_ITEM_ID), Str(A_PARENT_ITEM_ID))
+
+}
+
+Procedure SelectMenuItem(ID A_ITEM_ID)
+
+{
+        Local File F_MENU_ITEM = Alias for MENU_ITEM ;
+
+        Access F_MENU_ITEM,
+           Set F_MENU_ITEM:ITEM_ID = A_ITEM_ID, Using First Index, Exact
+
+        -- Display the library/screen we have chosen
+--        If F_MENU_ITEM:ITEM_TYPE = "S" Then
+--                Warning "You have chosen: "  + F_MENU_ITEM:LIBRARY
+
+        if f_menu_item:library = "Search" then
+          {
+            postevent("agtmt010","reload")
+            l_current = "Search"
+--            postevent("","display_message",f_menu_item:library)
+
+          }
+        else
+          if f_menu_item:library = "Exit" then
+            {
+              function = "EXIT"
+              abort()
+            }
+          else
+          if f_menu_item:library = "Standard" then
+            {
+              postevent("agtmt001","REMOVE_SCREEN")
+              l_current = "Standard"
+              display screen "agtmt010" inside right_side_panel --with initial function "search"
+--              postevent("","display_message",f_menu_item:library)
+            }
+          else
+            {
+              postevent("","reload")
+              l_current = ""
+            }
+          if l_current = ""  or
+             f_menu_item:library <> l_current or
+             f_menu_item:library = "" then
+            {
+              postevent("","reload")
+            }
+}
+
+Procedure CreateMenuDatabase()
+
+{
+  access apqtreetop,
+     set apqtreetop:item_id = "", approximate
+
+  while apqtreetop:errornumber <> 4026
+    {
+      do addmenu(apqtreetop:item_name, apqtreetop:parent_item_id, apqtreetop:library_display, apqtreetop:screen_display)
+      next apqtreetop
+    }
+}
+
+Procedure AddMenu(String A_ITEM_NAME, ID A_PARENT_ITEM_ID, String A_ITEM_LIBRARY, String A_ITEM_SCREEN)
+
+{
+  Local File F_MENU_ITEM = Alias for MENU_ITEM ;
+
+  Access F_MENU_ITEM,
+     Set F_MENU_ITEM:ITEM_ID = 0, Using First Index, Exact
+
+  Add F_MENU_ITEM
+    {
+      F_MENU_ITEM:ITEM_ID = apqtreetop:item_id      --getNextMenuItemID()
+      F_MENU_ITEM:ITEM_NAME = A_ITEM_NAME
+      F_MENU_ITEM:PARENT_ITEM_ID = A_PARENT_ITEM_ID
+      F_MENU_ITEM:ITEM_TYPE = (If A_ITEM_LIBRARY > "" Then "S" Else "M")
+      F_MENU_ITEM:LIBRARY = A_ITEM_LIBRARY
+      F_MENU_ITEM:SCREEN = A_ITEM_SCREEN
+    }
+}
+
+ID Function getNextMenuItemID()
+
+{
+  l_lastMenuItemID = l_lastMenuItemID + 1
+  Return l_lastMenuItemID
+}
+
+End

@@ -1,0 +1,61 @@
+*------------------------------------------------------------------------------*
+|                                                                              |
+|                           1. Run Batch to Update Premiums and A/R            |
+|                           2. Run Batch to Update Policy Information          |
+|                           3. Premium Master File Records                     |
+|                           4. A/R Master File Records                         |
+|                           5. A/R Billing Records                             |
+|                           6. A/R Payment Records                             |
+|                           7. Change ARSCKKSU Balance                         |
+|                           8. Change Policy Totals                            |
+|                           9. Change Policy Amt Due                           |
+|                          10. SFPPOINT Update                                 |
+|                          11. Premium Multiline screen                        |
+|                          12. SFSCANCEL                                       |
+|                                                                              |
+|                                  __                                          |
+*------------------------------------------------------------------------------*
+%%
+Screen
+        Name = "sysmn002" ;
+        Type = "Menu" ;
+        Include "MENUKEYS.INC"
+        Screensize = "dynamic";
+        Windowtitle="%a     %s Systems Menu - Continued    %m";
+
+        Global String G_LIB[10] ;
+        Global Unsigned Ascii Number G_POLICY_NO[9];
+        String L_ENTER[1];
+
+Functions
+1       Display "sfsmt800" ;
+2       Display "sfsmt801" ;
+3       Display "prsmaster" ;
+4       Display "arsmaster" ;
+5       Display "arsbilling" ;
+6       Display "arspayment" ;
+7       Display "arschksu" ;
+8       Display "sfpmaster1" ;
+9       Display "sfpmaster2" ;
+10      Display "sfppoint" ;
+11      Display "prsmaster1" ;
+12      display "sfscancel" ;
+
+97      Display "sysmn001" ;
+98      Stop ;
+99      Continue Begin
+                 If G_LIB = "" Then
+                     Begin
+                     Warning "You are about to exit, press CANCEL to exit"
+                     If Abort = "NO" Then
+                         FUNCTION = "98"
+                     End
+                 Else
+                     FUNCTION = "97"
+                 End ;
+
+Fields
+        FUNCTION ;
+
+
+End

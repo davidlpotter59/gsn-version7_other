@@ -1,0 +1,1156 @@
+%%
+Screen
+        Name = "lmqmt001" ;
+        Type = "Detail" ;
+        Padcharacter = Space ;
+        Highlight = Underscore ;
+        Screensize = "dynamic" ;
+        Domain = "sfqamt" ;
+        Windowtitle = "%a     %s Portfolio Rating     %m" ;
+--      resizeable = yes ;
+        iconline = 0 ;
+
+        Global String G_LIB[10] ;
+
+        Global Unsigned Ascii Number G_POLICY_NO[9],
+                                     G_YEAR[4],
+                                     G_END_SEQUENCE[4],
+                                     G_QUOTE_NO[8] ,
+                                     G_prem_no[4],
+                                     g_build_no[4],
+                                     g_new_quote_no[8],
+                                     g_line_of_business[4],
+                                     g_check_reference[7],
+                                     g_agent_no[4],
+                                     g_opt[2] ,
+                                     g_scan[1] ;
+
+        global string g_company[10],
+                      g_company_id[10],
+                      g_function[10],
+                      g_first[1],
+                      g_first_1[1] ,
+                      g_copy_name[15] ,
+                      g_redisplay[1] ;
+
+        global MMDDYYYY date g_starting_date,
+                             g_ending_date ,
+                             g_eff_date,
+                             g_exp_date ;
+
+        global string g_lib_1[10],
+                      g_name[50] ;
+
+        global string g_inquiry[1] ,
+                      g_hold_function[10] ;
+
+        Local Unsigned Ascii Number L_TOTAL_1[8]=0,
+                                    L_TOTAL_2[8]=0,
+                                    L_TOTAL_3[8]=0,
+                                    L_TOTAL_4[8]=0,
+                                    L_TOTAL_5[8]=0,
+                                    L_TOTAL_6[8]=0,
+                                    l_total_7[8]=0,
+                                    l_total_8[8]=0,
+                                    l_total_9[8]=0,
+                                    l_total_10[8]=0,
+                                    l_total_11[8]=0,
+                                    l_total_12[8]=0,
+                                    l_total_13[8]=0,
+                                    l_option_1[1]=0,
+                                    l_option_2[1]=0,
+                                    l_option_3[1]=0,
+                                    l_option_4[1]=0,
+                                    l_option_5[1]=0,
+                                    l_option_6[1]=0,
+                                    l_option_7[1]=0,
+                                    l_lob[4]=0,
+                                    l_final_policy_total[8]=0,
+                                    l_installment[4]=0,
+                                    L_FINAL_TOTAL[8]=0,
+                                    l_hold_payment_plan[4]=0,
+                                    L_SURCHARGE_TOTAL[8]=0 ,
+                                    l_terrorism_total[8]=0 ,
+                                    l_abort_program[1]=0 ,
+                                    l_no_of_lines[2]=0 ;
+
+        Local String l_library[11]="" ,
+                     l_username[15]="",
+                     l_system_id[15]="" ,
+                     l_display_field[1]="",
+                     l_display_first[1]="Y",
+                     l_first[1]="Y" ,
+                     l_first_time[1]="Y",
+                     l_lob_code[10]="" ;
+
+        local signed ascii number l_sub_total[9]=0/dec=2 ;
+
+        Access sfqamt, Set sfqamt:quote_no = g_quote_no, Generic
+
+        Include "stdkeys7.inc"
+
+Style Definition
+
+        Include "styles.inc"
+
+Functions
+
+        "redisplay" display/noreturn "lmqmt001" ;
+
+        "add" sequence "new" ;
+        "new" add/autoupdate/hidden ;
+
+        "change" sequence "amend" ;
+        "amend" change/autoupdate/hidden ;
+
+        "func1" display "lmqmt001a"  tagged master_fn ;
+
+        "exit" screenlib "sfqlib" tagged exit_fn ;
+        "back" screenlib "sfqlib" tagged back_fn ;
+
+        "up" continue begin
+                      g_first            = "Y"
+                      g_function         = g_hold_function
+                      function = "rating"
+                      end ;
+        "rating" screenlib l_library ;
+
+        Include "stdfunc7.inc"
+
+Menu Definition
+
+        Include "stdmenu7.inc"
+
+menu tagged boq_mm properties { Text="Options" }
+    {
+         Menuitem Properties {
+                                            Iconname = "up.bmp"
+                                            Text     = "Form Of Business"
+                                            }
+                  Events     {
+                                            Action   = master_fn
+                                            }
+     }
+
+
+}
+
+Toolbar Definition
+
+        Include "stdtoolbar7.inc"
+}
+
+screen entry
+if g_redisplay = "Y" then
+    begin
+    g_redisplay = "N"
+    do check_sfqamt
+    function = "redisplay"
+    end
+
+if g_function one of "ADD", "NEW" then
+    begin
+--    G_first  = "N"
+    function = g_Function
+    g_hold_function = g_function
+    end
+
+if g_company_id = "" then
+    begin
+    g_company_id = sfsdefault:company_id
+    end
+
+l_username      = username/spacefill
+l_system_id     = "plp"/spacefill
+l_abort_program = 0
+
+access sfssecurity_rating, set sfssecurity_rating:company_id = g_company_id,
+                               sfssecurity_rating:user_id    = l_username,
+                               sfssecurity_rating:system_id  = l_system_id, generic
+
+Access Validation
+If sfqAMT:QUOTE_NO <> G_QUOTE_NO Then
+    Error 1000 ;
+
+screen
+{
+%%
+                                                        ______________
+*-----------------------------------------------------------------------------------*
+| Quote No:     ________  ___________________________________________________       |
+*------------------------------------------------------------------*----------------*
+|                           Total     Surcharge     Terrorism      |         Line   |
+| Automobile:          _____________ _____________ _____________   |~~~_     ____   |
+| CPP/Monoline:        _____________ _____________ _____________   |~~~_     ____   |
+| Workers' Comp:       _____________ _____________ _____________   |~~~_     ____   |
+| Commercial Umbrella: _____________ _____________ _____________   |~~~_     ____   |
+| Businessowners:      _____________ _____________ _____________   |~~~_     ____   |
+*------------------------------------------------------------------*----------------*
+| Total Terrorism:           _____________                                          |
+| Total Policy Premium:      _____________                                          |
+| Total Surcharge:           _____________                                          |
+| Final Policy Total:        _____________                                          |
+*-----------------------------------------------------------------------------------*
+_
+
+%%
+
+components
+
+Fields
+        FUNCTION/noecho/showasguidetext ;
+301     begin
+        if function one of "ADD", "NEW" then
+            begin
+            sfqamt:quote_no = g_quote_no
+            end
+        end
+        sfqamt:QUOTE_NO/displayonly  ;
+302     sfqname:name[1]/displayonly ;
+
+601     Begin
+            do update_totals
+        End
+        sfqamt:lob_totals[1]/displayonly/mask="ZZ,ZZZ,ZZZ.99";
+602     sfqamt:lob_surcharge[1]/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+603     sfqamt:lob_terrorism[1]/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+
+701     sfqamt:lob_totals[2]/displayonly/mask="ZZ,ZZZ,ZZZ.99";
+702     sfqamt:lob_surcharge[2]/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+703     sfqamt:lob_terrorism[2]/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+
+801     sfqamt:lob_totals[3]/displayonly/mask="ZZ,ZZZ,ZZZ.99";
+802     sfqamt:lob_surcharge[3]/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+803     sfqamt:lob_terrorism[3]/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+
+901     sfqamt:lob_totals[4]/displayonly/mask="ZZ,ZZZ,ZZZ.99";
+902     sfqamt:lob_surcharge[4]/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+903     sfqamt:lob_terrorism[4]/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+
+1001    sfqamt:lob_totals[5]/displayonly/mask="ZZ,ZZZ,ZZZ.99";
+1002    sfqamt:lob_surcharge[5]/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+1003    sfqamt:lob_terrorism[5]/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+
+604     l_option_1/checkbox/values="0,1"
+        hide if l_option_2 = 1 or
+                l_option_3 = 1 or
+                l_option_4 = 1 or
+                l_option_5 = 1 ;
+704     l_option_2/checkbox/values="0,1"
+        hide if l_option_1 = 1 or
+                l_option_3 = 1 or
+                l_option_4 = 1 or
+                l_option_5 = 1 ;
+804     l_option_3/checkbox/values="0,1"
+        hide if l_option_1 = 1 or
+                l_option_2 = 1 or
+                l_option_4 = 1 or
+                l_option_5 = 1 ;
+904     l_option_4/checkbox/values="0,1"
+        hide if l_option_1 = 1 or
+                l_option_2 = 1 or
+                l_option_3 = 1 or
+                l_option_5 = 1 ;
+1004    l_option_5/checkbox/values="0,1"
+        hide if l_option_1 = 1 or
+                l_option_2 = 1 or
+                l_option_3 = 1 or
+                l_option_4 = 1 ;
+
+605     begin
+        access sfsline_alias, set sfsline_alias:company_id = sfqname:company_id, generic
+        l_lob_code = "AUTO"
+        if sfqamt:line_of_business[1] = 0 then
+            begin
+            do access_sfsline
+            sfqamt:line_of_business[1] = l_lob
+            if l_no_of_lines > 1 then
+                activehelp()
+            end
+        end
+        sfqamt:line_of_business[1]/default
+        hide if l_option_1 = 0
+
+        l_lob = sfqamt:line_of_business[1]
+        access sfsline, set sfsline:company_id       = sfqname:company_id,
+                            sfsline:line_of_business = l_lob,
+                            sfsline:lob_subline      = "00", generic
+
+        if sfqamt:line_of_business[1] <> sfsline:line_of_business then
+            error 1201
+
+        l_lob = sfqamt:line_of_business[1]
+        access sfsscreen, set sfsscreen:company_id       = sfqname:company_id,
+                              sfsscreen:line_of_business = l_lob, generic
+
+        access caqvehicle, set caqvehicle:quote_no = g_quote_no, generic
+
+        access sfqmaster, set sfqmaster:quote_no = g_quote_no, generic
+
+        if function one of "ADD", "NEW" then
+            begin
+            if sfqmaster:quote_no <> g_quote_no or
+               sfqmaster:form_of_business = "" then
+                begin
+                display modal screen "lmqmt001a"
+                with initial function "ADD|BACK"
+                end
+            end
+
+        l_library = sfsscreen:quote_library
+        if sfssecurity_rating:auto_screen_jump = 1 and
+           function one of "ADD", "NEW" then
+            begin
+            if caqvehicle:quote_no <> g_quote_no then
+                begin
+                g_first            = "Y"
+                g_function         = function
+                end
+            g_line_of_business = sfqamt:line_of_business[1]
+            function           = "up"
+            end
+        else
+            begin
+            if caqvehicle:quote_no <> g_quote_no and
+               g_hold_function = "ADD" then
+                begin
+                g_first = "Y"
+                g_function = g_hold_function
+                end
+            g_line_of_business = sfqamt:line_of_business[1]
+            function           = "up"
+            end
+
+        activehelp if sfsline_alias:lob_code one of "AUTO" and
+                      sfsline_alias:lob_subline = "00" then
+                       sfsline_alias:line_of_business
+                   else
+                       null/width=8 ,
+                   if sfsline_alias:lob_code one of "AUTO" and
+                      sfsline_alias:lob_subline = "00" then
+                       sfsline_alias:description
+                   else
+                       null/width=40 ;
+605     sfqamt:line_of_business[1]/displayonly ;
+
+705     begin
+        access sfsline_alias, set sfsline_alias:company_id = sfqname:company_id, generic
+        l_lob_code = "SMP"
+        if sfqamt:line_of_business[2] = 0 then
+            begin
+            do access_sfsline
+            sfqamt:line_of_business[2] = l_lob
+            if l_no_of_lines > 1 then
+                activehelp()
+            end
+        end
+        sfqamt:line_of_business[2]/default
+        hide if l_option_2 = 0
+
+        l_lob = sfqamt:line_of_business[2]
+        access sfsline, set sfsline:company_id       = sfqname:company_id,
+                            sfsline:line_of_business = l_lob,
+                            sfsline:lob_subline      = "00", generic
+
+        if sfqamt:line_of_business[2] <> sfsline:line_of_business then
+            error 1201
+
+        l_lob = sfqamt:line_of_business[2]
+        access sfsscreen, set sfsscreen:company_id       = sfqname:company_id,
+                              sfsscreen:line_of_business = l_lob, generic
+
+        access sfqmaster, set sfqmaster:quote_no = g_quote_no, generic
+
+        access sfqname, set sfqname:quote_no = g_quote_no, generic
+
+        if sfsline:lob_code one of "SMP" then
+            begin
+            if sfqname:quote_no = g_quote_no then
+                begin
+                change sfqname
+                    begin
+                    sfqname:package = 1
+                    end
+                end
+            end
+        else
+            begin
+            if sfqname:quote_no = g_quote_no then
+                begin
+                change sfqname
+                    begin
+                    sfqname:package = 0
+                    end
+                end
+            end
+
+        access cpqgeneral, set cpqgeneral:quote_no = g_quote_no, generic
+
+        access cpqliability, set cpqliability:quote_no = g_quote_no, generic
+
+        access cpqinland, set cpqinland:quote_no = g_quote_no, generic
+
+        access cpqfarm, set cpqfarm:quote_no = g_quote_no, generic
+
+        access cpqfarmliab, set cpqfarmliab:quote_no = g_quote_no, generic
+
+        if function one of "ADD", "NEW" then
+            begin
+            if sfqmaster:quote_no <> g_quote_no or
+               sfqmaster:form_of_business = "" then
+                begin
+                display modal screen "lmqmt001a"
+                with initial function "ADD|BACK"
+                end
+            end
+
+        l_library = sfsscreen:quote_library
+        if sfssecurity_rating:auto_screen_jump = 1 and
+           function one of "ADD" then
+            begin
+            if sfqmaster:quote_no <> g_quote_no then
+                begin
+                g_first = "Y"
+                g_function = function
+                end
+            else
+            if sfqmaster:quote_no = g_quote_no then
+                begin
+                if cpqgeneral:quote_no <> g_quote_no and
+                   cpqliability:quote_no <> g_quote_no and
+                   cpqinland:quote_no <> g_quote_no and
+                   cpqfarm:quote_no <> g_quote_no and
+                   cpqfarmliab:quote_no <> g_quote_no then
+                    begin
+                    g_first = "Y"
+                    g_function = "REVIEW"
+                    end
+                end
+            g_line_of_business = sfqamt:line_of_business[2]
+            function = "up"
+            end
+        else
+            begin
+            if sfqmaster:quote_no = g_quote_no then
+                begin
+                if cpqgeneral:quote_no <> g_quote_no and
+                   cpqliability:quote_no <> g_quote_no and
+                   cpqinland:quote_no <> g_quote_no and
+                   cpqfarm:quote_no <> g_quote_no and
+                   cpqfarmliab:quote_no <> g_quote_no then
+                    begin
+                    g_first = "Y"
+                    g_function = "REVIEW"
+                    end
+                end
+            g_line_of_business = sfqamt:line_of_business[2]
+            function = "up"
+            end
+
+        activehelp if sfsline_alias:lob_code one of "SMP", "LIABILITY", "PROPERTY", "FARMFIRE", "CINLAND", "ARTISAN" and
+                      sfsline_alias:lob_subline = "00" then
+                       sfsline_alias:line_of_business
+                   else
+                       null/width=8 ,
+                   if sfsline_alias:lob_code one of "SMP", "LIABILITY", "PROPERTY", "FARMFIRE", "CINLAND", "ARTISAN" and
+                      sfsline_alias:lob_subline = "00" then
+                       sfsline_alias:description
+                   else
+                       null/width=40 ;
+705     sfqamt:line_of_business[2]/displayonly
+        l_lob = sfqamt:line_of_business[2]
+        do check_lob;
+705     sfqamt:line_of_business[2]/displayonly ;
+
+805     begin
+            access sfsline_alias, set sfsline_alias:company_id = sfqname:company_id, generic
+            if sfqamt:line_of_business[3] = 0 then
+                begin
+                l_lob_code = "WORK"
+                do access_sfsline
+                sfqamt:line_of_business[3] = l_lob
+                if l_no_of_lines > 1 then
+                    activehelp()
+                end
+        end
+        sfqamt:line_of_business[3]/default
+        hide if l_option_3 = 0
+
+        l_lob = sfqamt:line_of_business[3]
+        access sfsline, set sfsline:company_id       = sfqname:company_id,
+                            sfsline:line_of_business = l_lob,
+                            sfsline:lob_subline      = "00", generic
+
+        if sfqamt:line_of_business[3] <> sfsline:line_of_business then
+            error 1201
+
+        access wcqgeneral, set wcqgeneral:quote_no = g_quote_no, generic
+
+        l_lob = sfqamt:line_of_business[3]
+        access sfsscreen, set sfsscreen:company_id       = sfqname:company_id,
+                              sfsscreen:line_of_business = l_lob, generic
+
+        if function one of "ADD", "NEW" then
+            begin
+            if sfqmaster:quote_no <> g_quote_no or
+               sfqmaster:form_of_business = "" then
+                begin
+                display modal screen "lmqmt001a"
+                with initial function "ADD|BACK"
+                end
+            end
+
+        l_library = sfsscreen:quote_library
+        if sfssecurity_rating:auto_screen_jump = 1 and
+           function one of "ADD" then
+            begin
+            if wcqgeneral:quote_no <> g_quote_no then
+                begin
+                g_first = "Y"
+                g_function = function
+                end
+            g_line_of_business = sfqamt:line_of_business[3]
+            function = "up"
+            end
+        else
+            begin
+            if wcqgeneral:quote_no <> g_quote_no and
+               g_function = "ADD" then
+                begin
+                g_first = "Y"
+                g_function = g_hold_function
+                end
+            g_line_of_business = sfqamt:line_of_business[3]
+            function = "up"
+            end
+
+        activehelp if sfsline_alias:lob_code one of "WORK" and
+                      sfsline_alias:lob_subline = "00" then
+                       sfsline_alias:line_of_business
+                   else
+                       null/width=8 ,
+                   if sfsline_alias:lob_code one of "WORK" and
+                      sfsline_alias:lob_subline = "00" then
+                       sfsline_alias:description
+                   else
+                       null/width=40 ;
+805     sfqamt:line_of_business[3]/displayonly ;
+
+905     begin
+            access sfsline_alias, set sfsline_alias:company_id = sfqname:company_id, generic
+            if sfqamt:line_of_business[4] = 0 then
+                begin
+                l_lob_code = "UMBRELLA"
+                do access_sfsline
+                sfqamt:line_of_business[4] = l_lob
+                if l_no_of_lines > 1 then
+                    activehelp()
+                end
+        end
+        sfqamt:line_of_business[4]/default
+        hide if l_option_4 = 0
+
+        l_lob = sfqamt:line_of_business[4]
+        access sfsline, set sfsline:company_id       = sfqname:company_id,
+                            sfsline:line_of_business = l_lob,
+                            sfsline:lob_subline      = "00", generic
+
+        if sfqamt:line_of_business[4] <> sfsline:line_of_business then
+            error 1201
+
+        access cpqumbrella, set cpqumbrella:quote_no = g_quote_no, generic
+
+        l_lob = sfqamt:line_of_business[4]
+        access sfsscreen, set sfsscreen:company_id       = sfqname:company_id,
+                              sfsscreen:line_of_business = l_lob, generic
+
+        if function one of "ADD", "NEW" then
+            begin
+            if sfqmaster:quote_no <> g_quote_no or
+               sfqmaster:form_of_business = "" then
+                begin
+                display modal screen "lmqmt001a"
+                with initial function "ADD|BACK"
+                end
+            end
+
+        l_library = sfsscreen:quote_library
+        if sfssecurity_rating:auto_screen_jump = 1 and
+           function one of "ADD" then
+            begin
+            if cpqumbrella:quote_no <> g_quote_no then
+                begin
+                g_first = "Y"
+                g_function = function
+                end
+            g_line_of_business = sfqamt:line_of_business[4]
+            function = "up"
+            end
+        else
+            begin
+            if cpqumbrella:quote_no <> g_quote_no and
+               g_function = "ADD" then
+                begin
+                g_first = "Y"
+                g_function = g_hold_function
+                end
+            g_line_of_business = sfqamt:line_of_business[4]
+            function = "up"
+            end
+
+        activehelp if sfsline_alias:lob_code one of "UMBRELLA" and
+                      sfsline_alias:lob_subline = "00" then
+                       sfsline_alias:line_of_business
+                   else
+                       null/width=8 ,
+                   if sfsline_alias:lob_code one of "UMBRELLA" and
+                      sfsline_alias:lob_subline = "00" then
+                       sfsline_alias:description
+                   else
+                       null/width=40 ;
+905     sfqamt:line_of_business[4]/displayonly ;
+
+1005    begin
+            access sfsline_alias, set sfsline_alias:company_id = sfqname:company_id, generic
+            if sfqamt:line_of_business[5] = 0 then
+                begin
+                l_lob_code = "BOP"
+                do access_sfsline
+                sfqamt:line_of_business[5] = l_lob
+                if l_no_of_lines > 1 then
+                    activehelp()
+                end
+        end
+        sfqamt:line_of_business[5]/default
+        hide if l_option_5 = 0
+
+        l_lob = sfqamt:line_of_business[5]
+        access sfsline, set sfsline:company_id       = sfqname:company_id,
+                            sfsline:line_of_business = l_lob,
+                            sfsline:lob_subline      = "00", generic
+
+        if sfqamt:line_of_business[5] <> sfsline:line_of_business then
+            error 1201
+
+        access boqgeneral, set boqgeneral:quote_no = g_quote_no, generic
+
+        l_lob = sfqamt:line_of_business[5]
+        access sfsscreen, set sfsscreen:company_id       = sfqname:company_id,
+                              sfsscreen:line_of_business = l_lob, generic
+
+        if function one of "ADD", "NEW" then
+            begin
+            if sfqmaster:quote_no <> g_quote_no or
+               sfqmaster:form_of_business = "" then
+                begin
+                display modal screen "lmqmt001a"
+                with initial function "ADD|BACK"
+                end
+            end
+
+        l_library = sfsscreen:quote_library
+        if sfssecurity_rating:auto_screen_jump = 1 and
+           function one of "ADD" then
+            begin
+            if boqgeneral:quote_no <> g_quote_No then
+                begin
+                g_first = "Y"
+                g_function = function
+                end
+            g_line_of_business = sfqamt:line_of_business[5]
+            function = "up"
+            end
+        else
+            begin
+            if boqgeneral:quote_no <> g_quote_no and
+               g_function = "ADD" then
+                begin
+                g_first = "Y"
+                g_function = g_hold_Function
+                end
+            g_line_of_business = sfqamt:line_of_business[5]
+            function = "up"
+            end
+
+        activehelp if sfsline_alias:lob_code one of "BOP" and
+                      sfsline_alias:lob_subline = "00" then
+                       sfsline_alias:line_of_business
+                   else
+                       null/width=8 ,
+                   if sfsline_alias:lob_code one of "BOP" and
+                      sfsline_alias:lob_subline = "00" then
+                       sfsline_alias:description
+                   else
+                       null/width=40 ;
+1005    sfqamt:line_of_business[5]/displayonly ;
+
+1201    l_terrorism_total/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+1301    L_FINAL_TOTAL/displayonly/mask="ZZ,ZZZ,ZZZ.99";
+1401    L_SURCHARGE_total/displayonly/mask="ZZ,ZZZ,ZZZ.99";
+1501    begin
+            l_final_policy_total = l_terrorism_total +
+                                   l_final_total +
+                                   l_surcharge_total
+            do access_arspayplan
+            if arspayplan:manual_payment_plan = 0 then
+                Do INSTALLMENT
+        end
+        l_final_policy_total/displayonly/mask="ZZ,ZZZ,ZZZ.99" ;
+
+}
+
+/*update
+if updateok = "YES" and
+   abort = "NO" then
+    begin
+    end*/
+
+screen exit
+do check_for_blank_lob
+g_lib_1 = "lmqlib"
+g_function = ""
+If FUNCTION one of "EXIT", "BACK" and
+   g_inquiry not one of "Y" Then
+    Begin
+    Access SFQNAME, Set SFQNAME:QUOTE_NO = G_QUOTE_NO, Exact
+
+    If SFQNAME:QUOTE_NO = G_QUOTE_NO Then
+        Change SFQNAME
+            Begin
+            SFQNAME:CURRENT_USER = ""/raw
+            End
+    End
+
+procedure definition
+
+procedure check_for_blank_lob
+begin
+access sfqamt_alias, set sfqamt_alias:quote_no = g_quote_no, generic
+
+access sfqmastsupp, set sfqmastsupp:quote_no = g_quote_no, generic
+
+while sfqmastsupp:quote_no = g_quote_no
+    begin
+    if sfqamt_alias:line_of_business[2] one of 2 and
+       sfqmastsupp:line_of_business one of 6 then
+        begin
+        access sfqmastsupp_alias, set sfqmastsupp_alias:quote_no = sfqmastsupp:quote_no,
+                                      sfqmastsupp_alias:line_of_business = sfqmastsupp:line_of_business, generic
+
+        delete sfqmastsupp_alias
+        end
+
+    if sfqamt_alias:line_of_business[2] one of 6 and
+       sfqmastsupp:line_of_business one of 2 then
+        begin
+        access sfqmastsupp_alias, set sfqmastsupp_alias:quote_no = sfqmastsupp:quote_no,
+                                      sfqmastsupp_alias:line_of_business = sfqmastsupp:line_of_business, generic
+
+        delete sfqmastsupp_alias
+        end
+
+    if sfqamt_alias:line_of_business[2] one of 2, 6, 11, 13 and
+       sfqmastsupp:line_of_business one of 8 then
+        begin
+        access sfqmastsupp_alias, set sfqmastsupp_alias:quote_no = sfqmastsupp:quote_no,
+                                      sfqmastsupp_alias:line_of_business = sfqmastsupp:line_of_business, generic
+
+        delete sfqmastsupp_alias
+        end
+
+    if sfqamt_alias:line_of_business[2] one of 8 and
+       sfqmastsupp:line_of_business one of 2, 6, 11, 13 then
+        begin
+        access sfqmastsupp_alias, set sfqmastsupp_alias:quote_no = sfqmastsupp:quote_no,
+                                      sfqmastsupp_alias:line_of_business = sfqmastsupp:line_of_business, generic
+
+        delete sfqmastsupp_alias
+        end
+
+    next sfqmastsupp
+    end
+
+end
+
+procedure check_lob
+begin
+access sfqmastsupp, set sfqmastsupp:quote_no = g_quote_no,
+                        sfqmastsupp:line_of_business = l_lob, generic
+
+if sfqamt:line_of_business[2] one of 2 and
+   sfqmastsupp:total[11] = 0 and
+   sfqmastsupp:total[15] <> 0 then
+    sfqamt:line_of_business[2] = 6
+
+if sfqamt:line_of_business[2] one of 6 and
+   sfqmastsupp:total[11] <> 0 and
+   sfqmastsupp:total[15] = 0 then
+    sfqamt:line_of_business[2] = 2
+
+end
+
+procedure access_arspayplan
+begin
+Access ARSPAYPLAN, Set ARSPAYPLAN:COMPANY_ID       = SFQNAME:COMPANY_ID,
+                       ARSPAYPLAN:LINE_OF_BUSINESS = sfqname:LINE_OF_BUSINESS,
+                       ARSPAYPLAN:PAYMENT_PLAN     = sfqname:payment_plan, generic
+
+end
+
+Procedure INSTALLMENT
+Begin
+/* 05/30/2001 - added logic to calculate the payment plan
+   based on company id, line of business and total premium
+
+   do not perform this routine of the payment plan <> 1
+   must assume that if the payment plan is other than 1 the user
+   wants to manually select the payment plan
+
+   use l_total to compare total premium against minimum_premium
+   requirements from teh arspayplan database
+*/
+/* actually recalculating the payment plan at the quote level is a
+   good idea since a change in limit could easily put the quote
+   into another payment plan option
+*/
+
+Do CALCULATE_PAYMENT_PLAN_OPTION
+
+/* reaccess arspayplan since the above logic changes the value of this file
+   it appears that the file is accessed on entry and even though the
+   payment plan has been changed cqcs is holding the original value
+*/
+
+Access ARSPAYPLAN, Set ARSPAYPLAN:COMPANY_ID       = SFQNAME:COMPANY_ID,
+                       ARSPAYPLAN:LINE_OF_BUSINESS = sfqname:LINE_OF_BUSINESS,
+                       ARSPAYPLAN:PAYMENT_PLAN     = L_HOLD_PAYMENT_PLAN
+
+If ARSPAYPLAN:INSTALLMENT_CHARGE_TYPE = "FLAT" And
+   ARSPAYPLAN:INSTALLMENT_CHARGE_TIME = "EACH" Then
+    L_INSTALLMENT = ARSPAYPLAN:INSTALLMENT_CHARGE_RATE *
+                    ARSPAYPLAN:NUMBER_OF_PAYMENTS
+
+If ARSPAYPLAN:INSTALLMENT_CHARGE_TYPE = "FIXED" Then
+    L_INSTALLMENT = ARSPAYPLAN:INSTALLMENT_CHARGE_RATE
+
+/* end of installment */
+End
+
+Procedure CALCULATE_PAYMENT_PLAN_OPTION
+Begin
+/* house cleaning */
+L_FIRST_TIME = "Y"
+L_HOLD_PAYMENT_PLAN = 1 -- this is a cya
+L_SUB_TOTAL = l_final_policy_total
+
+Access ARSPAYPLAN, Set ARSPAYPLAN:COMPANY_ID = SFQNAME:COMPANY_ID,
+                       ARSPAYPLAN:LINE_OF_BUSINESS = sfqname:LINE_OF_BUSINESS, Approximate
+
+While ARSPAYPLAN:COMPANY_ID = SFQNAME:COMPANY_ID And
+      ARSPAYPLAN:LINE_OF_BUSINESS = SFQNAME:LINE_OF_BUSINESS
+        Begin
+        if arspayplan:manual_payment_plan = 0 then
+        begin
+        If L_FIRST_TIME = "Y" Then
+            Begin
+            L_FIRST_TIME = "N"
+            L_HOLD_PAYMENT_PLAN = ARSPAYPLAN:PAYMENT_PLAN
+            End
+
+        If L_SUB_TOTAL >= ARSPAYPLAN:MINIMUM_PREMIUM  Then
+            Begin
+            L_HOLD_PAYMENT_PLAN = ARSPAYPLAN:PAYMENT_PLAN
+            End
+        end
+
+        Next ARSPAYPLAN
+        End
+
+/* only update the sfqname file if the payment plan actually changed
+   05/31/2001 - removed this logic so that the sfqname file would
+   be updated everytime, also added update of sfqname:final_rating
+*/
+
+/* if there is a mortgagee on this policy where it is of type
+   "B" - billing
+   "C" - combination mortgagee and billing
+   "F" - premium finance
+   then the payment plan is to be set to 1
+*/
+
+Access SFQSUPP, Set SFQSUPP:QUOTE_NO = SFQMASTER:QUOTE_NO, Approximate
+
+While SFQSUPP:QUOTE_NO = SFQMASTER:QUOTE_NO
+    Begin
+    If SFQSUPP:MORTGAGE_TYPE_1 One Of "B", "C", "F" Then
+        { L_HOLD_PAYMENT_PLAN = 1 }
+    Next SFQSUPP
+    End
+
+/* change on feb 21, 2002 - if AC only annual is allowed */
+If SFQNAME:BILL_PLAN = "AC" Then
+Begin
+    L_HOLD_PAYMENT_PLAN = 1
+End
+
+Access SFQNAME, Set SFQNAME:QUOTE_NO = SFQMASTER:QUOTE_NO
+
+If SFQNAME:QUOTE_NO = SFQMASTER:QUOTE_NO Then
+    Begin
+    Change SFQNAME
+        Begin
+        SFQNAME:PAYMENT_PLAN = L_HOLD_PAYMENT_PLAN
+        SFQNAME:FINAL_RATING = "Y"
+        End
+
+    End
+
+/* if deposit premium equal to or greater then total premium
+   then the payment plan is to be set to 1
+*/
+Access ARSCHKSU, Set ARSCHKSU:COMPANY_ID = SFQNAME:COMPANY_ID,
+                     ARSCHKSU:CHECK_REFERENCE = SFQNAME:CHECK_REFERENCE, Generic
+
+If ARSCHKSU:CHECK_AMOUNT >= l_final_policy_total Then
+    Begin
+    L_HOLD_PAYMENT_PLAN = 1
+    End
+
+Access SFQNAME, Set SFQNAME:QUOTE_NO = SFQMASTER:QUOTE_NO
+
+If SFQNAME:QUOTE_NO = SFQMASTER:QUOTE_NO Then
+    Begin
+    Change SFQNAME
+        Begin
+        SFQNAME:PAYMENT_PLAN = L_HOLD_PAYMENT_PLAN
+        SFQNAME:FINAL_RATING = "Y"
+        End
+    End
+
+End
+
+procedure check_sfqamt
+begin
+access caqvehicle, set caqvehicle:quote_no = g_quote_no, generic
+
+if caqvehicle:quote_no <> g_quote_no then
+    begin
+    access sfqamt_alias, set sfqamt_alias:quote_no = g_quote_no, generic
+
+    if sfqamt_alias:quote_no = g_quote_no then
+        begin
+        change sfqamt_alias
+            begin
+            sfqamt_alias:lob_totals[1]       = 0
+            sfqamt_alias:lob_surcharge[1]    = 0
+            sfqamt_alias:lob_terrorism[1]    = 0
+            sfqamt_alias:line_of_business[1] = 0
+            end
+        end
+    end
+
+access cpqgeneral, set cpqgeneral:quote_no = g_quote_no, generic
+
+access cpqliability, set cpqliability:quote_no = g_quote_no, generic
+
+access cpqartisan, set cpqartisan:quote_no = g_quote_no, generic
+
+access cpqinland, set cpqinland:quote_no = g_quote_no, generic
+
+if cpqgeneral:quote_no <> g_quote_no and
+   cpqliability:quote_no <> g_quote_no and
+   cpqartisan:quote_no <> g_quote_no and
+   cpqinland:quote_no <> g_quote_no then
+    begin
+    access sfqamt_alias, set sfqamt_alias:quote_no = g_quote_no, generic
+
+    if sfqamt_alias:quote_no = g_quote_no then
+        begin
+        change sfqamt_alias
+            begin
+            sfqamt_alias:lob_totals[2]       = 0
+            sfqamt_alias:lob_surcharge[2]    = 0
+            sfqamt_alias:lob_terrorism[2]    = 0
+            sfqamt_alias:line_of_business[2] = 0
+            end
+        end
+    end
+
+access wcqgeneral, set wcqgeneral:quote_no = g_quote_no, generic
+
+if wcqgeneral:quote_no <> g_quote_no then
+    begin
+    access sfqamt_alias, set sfqamt_alias:quote_no = g_quote_no, generic
+
+    if sfqamt_alias:quote_no = g_quote_no then
+        begin
+        change sfqamt_alias
+            begin
+            sfqamt_alias:lob_totals[3]       = 0
+            sfqamt_alias:lob_surcharge[3]    = 0
+            sfqamt_alias:lob_terrorism[3]    = 0
+            sfqamt_alias:line_of_business[3] = 0
+            end
+        end
+    end
+
+access cpqumbrella, set cpqumbrella:quote_no = g_quote_no, generic
+
+if cpqumbrella:quote_no <> g_quote_no then
+    begin
+    access sfqamt_alias, set sfqamt_alias:quote_no = g_quote_no, generic
+
+    if sfqamt_alias:quote_no = g_quote_no then
+        begin
+        change sfqamt_alias
+            begin
+            sfqamt_alias:lob_totals[4]       = 0
+            sfqamt_alias:lob_surcharge[4]    = 0
+            sfqamt_alias:lob_terrorism[4]    = 0
+            sfqamt_alias:line_of_business[4] = 0
+            end
+        end
+    end
+
+access boqgeneral, set boqgeneral:quote_no = g_quote_no, generic
+
+if boqgeneral:quote_no <> g_quote_no then
+    begin
+    access sfqamt_alias, set sfqamt_alias:quote_no = g_quote_no, generic
+
+    if sfqamt_alias:quote_no = g_quote_no then
+        begin
+        change sfqamt_alias
+            begin
+            sfqamt_alias:lob_totals[5]       = 0
+            sfqamt_alias:lob_surcharge[5]    = 0
+            sfqamt_alias:lob_terrorism[5]    = 0
+            sfqamt_alias:line_of_business[5] = 0
+            end
+        end
+    end
+
+end
+
+procedure update_totals
+begin
+access sfqamt_alias, set sfqamt_alias:quote_no = g_quote_no, exact
+
+if sfqamt_alias:quote_no = g_quote_no then
+    begin
+    l_total_1  = sfqamt_alias:lob_totals[1]
+    l_total_2  = sfqamt_alias:lob_totals[2]
+    l_total_3  = sfqamt_alias:lob_totals[3]
+    l_total_4  = sfqamt_alias:lob_totals[4]
+    l_total_5  = sfqamt_alias:lob_totals[5]
+    l_total_6  = sfqamt_alias:lob_totals[6]
+    l_total_7  = sfqamt_alias:lob_totals[7]
+    l_total_8  = sfqamt_alias:lob_totals[8]
+    l_total_9  = sfqamt_alias:lob_totals[9]
+    l_total_10 = sfqamt_alias:lob_totals[10]
+    l_total_11 = sfqamt_alias:lob_totals[11]
+    l_total_12 = sfqamt_alias:lob_totals[12]
+    l_total_13 = sfqamt_alias:lob_totals[13]
+
+    l_final_total = l_total_1 +
+                    l_total_2 +
+                    l_total_3 +
+                    l_total_4 +
+                    l_total_5 +
+                    l_total_6 +
+                    l_total_7 +
+                    l_total_8 +
+                    l_total_9 +
+                    l_total_10 +
+                    l_total_11 +
+                    l_total_12 +
+                    l_total_13
+
+    l_terrorism_total = sfqamt_alias:lob_terrorism[1] +
+                        sfqamt_alias:lob_terrorism[2] +
+                        sfqamt_alias:lob_terrorism[3] +
+                        sfqamt_alias:lob_terrorism[4] +
+                        sfqamt_alias:lob_terrorism[5] +
+                        sfqamt_alias:lob_terrorism[6] +
+                        sfqamt_alias:lob_terrorism[7] +
+                        sfqamt_alias:lob_terrorism[8] +
+                        sfqamt_alias:lob_terrorism[9] +
+                        sfqamt_alias:lob_terrorism[10] +
+                        sfqamt_alias:lob_terrorism[11] +
+                        sfqamt_alias:lob_terrorism[12] +
+                        sfqamt_alias:lob_terrorism[13]
+
+    l_surcharge_total = sfqamt_alias:lob_surcharge[1] +
+                        sfqamt_alias:lob_surcharge[2] +
+                        sfqamt_alias:lob_surcharge[3] +
+                        sfqamt_alias:lob_surcharge[4] +
+                        sfqamt_alias:lob_surcharge[5] +
+                        sfqamt_alias:lob_surcharge[6] +
+                        sfqamt_alias:lob_surcharge[7] +
+                        sfqamt_alias:lob_surcharge[8] +
+                        sfqamt_alias:lob_surcharge[9] +
+                        sfqamt_alias:lob_surcharge[10] +
+                        sfqamt_alias:lob_surcharge[11] +
+                        sfqamt_alias:lob_surcharge[12] +
+                        sfqamt_alias:lob_surcharge[13]
+
+    change sfqamt_alias
+        begin
+        sfqamt_alias:final_total     = l_final_total
+        sfqamt_alias:surcharge_total = l_surcharge_total
+        sfqamt_alias:terrorism_total = l_terrorism_total
+        end
+
+    end
+
+access sfqmaster, set sfqmaster:quote_no = g_quote_no, generic
+
+if sfqmaster:quote_no <> g_quote_no then
+    begin
+    add sfqmaster
+        begin
+        sfqmaster:quote_no = g_quote_no
+        end
+    end
+
+end
+
+procedure access_sfsline
+begin
+access sfsline, set sfsline:company_id = sfqname:company_id, generic
+
+l_first       = "Y"
+l_lob         = 0
+l_no_of_lines = 0
+while sfsline:company_id = sfqname:company_id
+    begin
+    if sfsline:lob_code = l_lob_code and
+       sfsline:lob_subline = "00" and
+       l_lob_code not one of "SMP" then
+        begin
+        if l_first = "Y" then
+            begin
+            l_lob = sfsline:line_of_business
+            l_first = "N"
+            end
+        l_no_of_lines = l_no_of_lines + 1
+        end
+
+    if sfsline:lob_code one of "SMP", "PROPERTY", "LIABILITY", "FARMFIRE", "CINLAND", "ARTISAN" and
+       sfsline:lob_subline = "00" and
+       l_lob_code one of "SMP" then
+        begin
+        if l_first = "Y" then
+            begin
+            l_lob = sfsline:line_of_business
+            l_first = "N"
+            end
+        l_no_of_lines = l_no_of_lines + 1
+        end
+
+    next sfsline
+    end
+
+end
+
+End

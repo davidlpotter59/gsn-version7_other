@@ -1,0 +1,381 @@
+%%
+/*
+Date Written: April 1, 2005
+
+Name: fos174_092010.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+05/20/2010            JLB             New form fos174 for salem EPLI
+
+===========================
+*/
+
+Program
+  Name = "fos174_092010";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[16] = "fos174_092010.cq";
+ Unsigned ascii number L_PAGE_COUNTER=0,
+                       l_max_lines,
+                       l_line_counter=0,
+                       l_state[2]=0,
+                       l_line_of_business[4],
+                       l_epl_prem;
+ String L_COMPANY_ID[10];
+
+ wdate l_eff_date;
+
+   Include "csfonts.inc"
+   Include "swsut100.var"
+   Include "swsut200.var"
+   Include "center2.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+access sfpmaster,
+   set sfpmaster:policy_no = sfpprint1:policy_no,
+       sfpmaster:pol_year  = sfpprint1:pol_year,
+       sfpmaster:end_sequence = sfpprint1:end_sequence, generic
+
+Access bopgeneral,
+   Set bopgeneral:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       bopgeneral:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       bopgeneral:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFPNAME,
+   Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFPmaster,
+   Set SFPmaster:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPmaster:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPmaster:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access sfpepl,
+  Set  sfpepl:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       sfpepl:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       sfpepl:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access sfpend_alias,
+   Set sfpend_alias:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       sfpend_alias:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       sfpend_alias:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFSLINE,
+   Set SFSLINE:COMPANY_ID       = SFPNAME:COMPANY_ID,
+       SFSLINE:LINE_OF_BUSINESS = SFPNAME:LINE_OF_BUSINESS,
+       SFSLINE:LOB_SUBLINE      = "00", exact
+
+   Include "swsut100.inc"
+   I_CODE = "FOS174"
+   Include "swsut200.inc"
+
+l_page_counter = 1
+
+If sfpmaster:trans_code one of 10, 14 then
+{
+  While  sfpend_alias:policy_NO    = SFPPRINT1:POLICY_NO And
+         sfpend_alias:POL_YEAR     = SFPPRINT1:POL_YEAR And
+         sfpend_alias:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+  {
+    If sfpend_alias:code = i_code Then
+      {
+        Access bopgeneral,
+           Set bopgeneral:POLICY_NO    = sfpend_alias:POLICY_NO ,
+               bopgeneral:POL_YEAR     = sfpend_alias:POL_YEAR ,
+               bopgeneral:END_SEQUENCE = sfpend_alias:END_SEQUENCE, Generic
+
+        Access sfpepl,
+          Set  sfpepl:POLICY_NO    = bopgeneral:POLICY_NO ,
+               sfpepl:POL_YEAR     = bopgeneral:POL_YEAR ,
+               sfpepl:END_SEQUENCE = bopgeneral:END_SEQUENCE, Generic
+
+          l_state            = bopgeneral:state
+          L_COMPANY_ID       = sfpname:COMPANY_ID
+          L_LINE_OF_BUSINESS = sfpname:LINE_OF_BUSINESS
+
+          Access SFSOPTEND,
+             Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+                 SFSOPTEND:STATE            = L_STATE,
+                 SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+                 SFSOPTEND:CODE             = I_CODE, generic
+
+           While SFSOPTEND:COMPANY_ID       = L_COMPANY_ID and
+                 SFSOPTEND:STATE            = L_STATE and
+                 SFSOPTEND:LINE_OF_BUSINESS = l_LINE_OF_BUSINESS and
+                 SFSOPTEND:CODE             = I_CODE
+
+             {  --start of sfsoptend check
+               If (sfpname:eff_date >= sfsoptend:eff_date and
+                  (sfpname:eff_date < sfsoptend:exp_date or
+                   sfsoptend:exp_date = 0)) then
+                 {
+                   l_eff_date = sfsoptend:eff_date
+                 }
+               next sfsoptend
+             }
+
+          Access SFSOPTEND,
+             Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+                 SFSOPTEND:STATE            = L_STATE,
+                 SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+                 SFSOPTEND:CODE             = I_CODE,
+                 SFSOPTEND:EFF_DATE         = L_EFF_DATE, exact
+
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+          Writefile(L_FILE_NAME,"%s","<033>&a4800h0V")
+          Writefile(L_FILE_NAME,"%s","FOS 174")
+          Writefile(L_FILE_NAME,"%s"," ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+          Writefile(L_FILE_NAME,"%s","(09 10)")
+
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+          Writefile(L_FILE_NAME,"%s","<033>&a100h7200V")
+          Writefile(L_FILE_NAME,"%s","FOS 174")
+          Writefile(L_FILE_NAME,"%s"," ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+          Writefile(L_FILE_NAME,"%s","(09 10)")
+
+          Writefile(L_FILE_NAME,"%s",l_arial_bold_12)
+          Writefile(L_FILE_NAME,"%s","<033>&a100h0V")
+          Writefile(L_FILE_NAME,"%s","COMMERCIAL EMPLOYMENT PRACTICES")
+          Writefile(L_FILE_NAME,"%s",l_arial_bold_12)
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+140V")
+          Writefile(L_FILE_NAME,"%s","LIABILITY INSURANCE COVERAGE")
+          Writefile(L_FILE_NAME,"%s",l_arial_bold_12)
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+140V")
+          Writefile(L_FILE_NAME,"%s","SUPPLEMENTAL DECLARATIONS")
+
+          Writefile(L_FILE_NAME,"%s%s%s%s","<NL>",L_ARIAL_8,
+                                "<033>&a100h+240V","Policy Number: ")
+          Writefile(L_FILE_NAME,"%s",Trun(SFSLINE:ALPHA))
+          Writefile(L_FILE_NAME,"%n%s%s%s%d%s%s",SFPPRINT1:POLICY_NO,"<033>&a3275h+0V",
+          "Effective:","<033>&a3750h+0V",SFPmaster:trans_EFF,"<NL>",
+                                                          "<NL>")
+
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+240V<033>*c5500h8v0P")   --top horizontal line
+          Writefile(L_FILE_NAME,"%s",L_PUSH)
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+0V<033>*c4a520b0P") --left vertical line
+          Writefile(L_FILE_NAME,"%s","<033>&a5600h+0V<033>*c4a520b0P")  --right vertical
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+1240V<033>*c5500h8v0P")   --bottom horizontal line
+          Writefile(L_FILE_NAME,"%s","<033>&a1650h+0V<033>*c4a965b0P") --left vertical line
+          Writefile(L_FILE_NAME,"%s","<033>&a2560h+0V<033>*c4a965b0P")  --right vertical
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+470V<033>*c5500h8v0P")   --1st horizontal line
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+360V<033>*c5500h8v0P")   --2nd horizontal line
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+330V<033>*c5500h8v0P")   --3rd horizontal line
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+520V<033>*c5500h8v0P")   --4th horizontal line
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+230V<033>*c5500h8v0P")   --5th horizontal line
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+400V<033>*c5500h8v0P")   --6th horizontal line
+          Writefile(L_FILE_NAME,"%s","<033>&a4300h+0V<033>*c4a153b0P")  --right vertical
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+360V<033>*c5500h8v0P")   --6th horizontal line
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+480V<033>*c5500h8v0P")   --6th horizontal line
+
+          Writefile(L_FILE_NAME,"%s",L_POP)
+          L_STRING = "NOTICE"
+          L_FONT = L_ARIAL_bold_8
+          L_PITCH_HALF = 4
+          L_PITCH_FULL = 8
+          L_VERTICAL_POS = "+130"
+          L_HORIZONTAL_POS = "2880"
+          Include "center3.pro"
+
+          Writefile(L_FILE_NAME,"%s","<033>&a130h+150V")
+          Writefile(L_FILE_NAME,"%s","<033>&a+30h+20V")
+          Writefile(L_FILE_NAME,"%s",L_BULLET_6)
+          Writefile(L_FILE_NAME,"%s","<033>&a+30h-20V")
+          Writefile(L_FILE_NAME,"%s","<033>&a300h+0V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_8)
+          Writefile(L_FILE_NAME,"%s","EXCEPT TO SUCH EXTENT AS MAY OTHERWISE BE PROVIDED HEREIN, THIS EPL COVERAGE IS LIMITED TO LIABILITY FOR ONLY")
+          Writefile(L_FILE_NAME,"%s","<033>&a300h+120V")
+          Writefile(L_FILE_NAME,"%s","THOSE CLAIMS OR SUITS THAT ARE FIRST MADE AGAINST THE ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_ITALIC_bold_8)
+          Writefile(L_FILE_NAME,"%s","INSUREDS ")
+          Writefile(L_FILE_NAME,"%s",l_arial_bold_8)
+          Writefile(L_FILE_NAME,"%s","DURING THE EPL COVERAGE PERIOD AND REPORTED IN")
+          Writefile(L_FILE_NAME,"%s","<033>&a300h+120V")
+          Writefile(L_FILE_NAME,"%s","WRITING TO THE INSURER PURSUANT TO THE TERMS HEREIN. VARIOUS PROVISIONS IN THIS EPL COVERAGE RESTRICT")
+          Writefile(L_FILE_NAME,"%s","<033>&a300h+120V")
+          Writefile(L_FILE_NAME,"%s","COVERAGE.  PLEASE READ THE ENTIRE EPL COVERAGE FORM CAREFULLY TO DETERMINE RIGHTS, DUTIES AND WHAT IS AND IS")
+          Writefile(L_FILE_NAME,"%s","<033>&a300h+120V")
+          Writefile(L_FILE_NAME,"%s","NOT COVERED.")
+
+          Writefile(L_FILE_NAME,"%s","<033>&a130h+150V")
+          Writefile(L_FILE_NAME,"%s","<033>&a+30h+20V")
+          Writefile(L_FILE_NAME,"%s",L_BULLET_6)
+          Writefile(L_FILE_NAME,"%s","<033>&a+30h-20V")
+          Writefile(L_FILE_NAME,"%s","<033>&a300h+0V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_8)
+          Writefile(L_FILE_NAME,"%s","THE LIMIT OF LIABILITY AVAILABLE TO PAY JUDGMENTS OR SETTLEMENTS UNDER THIS EPL COVERAGE SHALL BE REDUCED BY")
+          Writefile(L_FILE_NAME,"%s","<033>&a300h+120V")
+          Writefile(L_FILE_NAME,"%s","AMOUNTS INCURRED FOR DEFENSE COSTS. AMOUNTS INCURRED FOR DEFENSE COSTS SHALL BE APPLIED AGAINST THE")
+          Writefile(L_FILE_NAME,"%s","<033>&a300h+120V")
+          Writefile(L_FILE_NAME,"%s","DEDUCTIBLE AMOUNT.  ")
+
+          Writefile(L_FILE_NAME,"%s",l_push)
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+360V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_8)
+          Writefile(L_FILE_NAME,"%s","EPL Coverage Period:  ")
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+440V")
+          Writefile(L_FILE_NAME,"%s","EPL Aggregate Limit of Liability:  ")
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+360V")
+          Writefile(L_FILE_NAME,"%s","EPL Deductible Amount:  ")
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+260V")
+          Writefile(L_FILE_NAME,"%s","EPL Retroactive Date:")
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+480V")
+          Writefile(L_FILE_NAME,"%s","EPL Coverage Premium:  ")
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+210V")
+          Writefile(L_FILE_NAME,"%s","Third Party Violations Premium  ")
+          Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+          Writefile(L_FILE_NAME,"%s","(Optional):  ")
+
+          Writefile(L_FILE_NAME,"%s",l_pop)
+          Writefile(L_FILE_NAME,"%s",l_push)
+          Writefile(L_FILE_NAME,"%s","<033>&a1700h+240V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+          Writefile(L_FILE_NAME,"%s","From:  ")
+
+          Writefile(L_FILE_NAME,"%d",sfpmaster:trans_eff)
+          Writefile(L_FILE_NAME,"%s","<033>&a1700h+240V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+          Writefile(L_FILE_NAME,"%s","To:  ")
+          Writefile(L_FILE_NAME,"%d",sfpname:exp_date)
+          Writefile(L_FILE_NAME,"%s","<033>&a1700h+360V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+          Writefile(L_FILE_NAME,"%s","$  ")
+          Writefile(L_FILE_NAME,"%s",str(sfpepl:epl_limit,"ZZZ,ZZZ"))
+
+          Writefile(L_FILE_NAME,"%s","<033>&a1700h+280V")
+          Writefile(L_FILE_NAME,"%s","$  ")
+          Writefile(L_FILE_NAME,"%s",str(sfpepl:epl_deductible,"ZZ,ZZZ"))
+
+          Writefile(L_FILE_NAME,"%s","<033>&a1700h+260V")
+          Writefile(L_FILE_NAME,"%d",sfpepl:retro_date)
+
+          Writefile(L_FILE_NAME,"%s","<033>&a1700h+480V")
+          Writefile(L_FILE_NAME,"%s","$  ")
+          Writefile(L_FILE_NAME,"%s",str(sfpepl:epl_premium,"ZZ,ZZZ"))
+
+          Writefile(L_FILE_NAME,"%s","<033>&a1700h+330V")
+          Writefile(L_FILE_NAME,"%s","$  ")
+          Writefile(L_FILE_NAME,"%s",str(sfpepl:third_party_premium,"ZZ,ZZZ"))
+
+          Writefile(L_FILE_NAME,"%s",l_pop)
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+300V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","At 12:01 A.M. Standard Time at ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","your ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","mailing address shown on the Declarations  ")
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+120V")
+          Writefile(L_FILE_NAME,"%s","page of this policy  ")
+
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+400V")
+          Writefile(L_FILE_NAME,"%s","Annual aggregate for all ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","loss ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","combined, including defense costs.  ")
+
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+240V")
+          Writefile(L_FILE_NAME,"%s","For ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","loss ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","arising from claims or suits alleging the same ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","wrongful employment act")
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+120V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","or ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","related wrongful employment acts.  ")
+
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+200V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","If no date is shown, ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","we ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","will consider the EPL Retroactive Date to be the date of")
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+120V")
+          Writefile(L_FILE_NAME,"%s","organization of the ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","named insured")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s",".  The EPL Retroactive Date will remain ")
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+120V")
+          Writefile(L_FILE_NAME,"%s","the same through all subsequent renewals.  No change will be made to the EPL")
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+120V")
+          Writefile(L_FILE_NAME,"%s","Retroactive Date unless at the sole request of the ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","insured.  ")
+
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+180V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","EPL Premium for the EPL Coverage Period  ")
+
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+180V")
+          Writefile(L_FILE_NAME,"%s","If coverage for ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","third party violations ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","has been paid for, the premium will be  ")
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+120V")
+          Writefile(L_FILE_NAME,"%s","shown and coverage is in force.  Otherwise, there is no coverage available for  ")
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+120V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","third party violations.  ")
+
+          l_epl_prem = sfpmaster:total[9]
+
+          Writefile(L_FILE_NAME,"%s","<033>&a2590h+300V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_8)
+          Writefile(L_FILE_NAME,"%s","TOTAL EPL COVERAGE PREMIUM:  ")
+          Writefile(L_FILE_NAME,"%s","<033>&a4580h+0V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+          Writefile(L_FILE_NAME,"%s","$")
+          Writefile(L_FILE_NAME,"%s",str(l_epl_prem,"ZZZ,ZZZ"))
+
+          Writefile(L_FILE_NAME,"%s","<033>&a150h+260V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","This insurance does not apply to ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","loss ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","arising out of a ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","wrongful employment act ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","that arises out of incidents or circumstances of which ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","you")
+          Writefile(L_FILE_NAME,"%s","<033>&a150h+120V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","had knowledge prior to the effective date of this EPL Coverage or the first EPL Coverage")
+          Writefile(L_FILE_NAME,"%s"," Form issued by ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_8)
+          Writefile(L_FILE_NAME,"%s","us ")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+          Writefile(L_FILE_NAME,"%s","of which this EPL Coverage ")
+          Writefile(L_FILE_NAME,"%s","<033>&a150h+120V")
+          Writefile(L_FILE_NAME,"%s","is an uninterrupted renewal.  ")
+          Writefile(L_FILE_NAME,"%s","<FF>")
+      }---if sfpend_alias code = i_code
+    Next sfpend_alias
+  }---while sfpend_alias
+}
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

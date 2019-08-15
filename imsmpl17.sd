@@ -1,0 +1,318 @@
+%%                                                            
+/*
+Date Written: December 20, 2001
+
+Name: imsmpl17.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+2/21/2002             RMG              Modified form for MSO
+04/30/2002            DWR              Made Correction to original
+===========================
+*/
+
+Program
+  Name = "imsmpl17";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[11] = "imsmpl17.cq";
+ String L_COPY_NAME[20] ;
+ String L_READ;
+ Number L_START_PRINT;       --first character printed
+ Number L_END_PRINT;         --last character printed when l_break reaches 40C
+ Number L_BREAK = 40;       --number of characters printed before break
+ Number L_BREAK_POINT;      --where the break occurs and newline is inserted
+ Number L_LOOP;
+ Number L_PAGE_NUMBER = 1;
+ Number L_ITEM_NO = 1;
+ Unsigned Ascii Number L_ITEM_COUNTER;
+ Unsigned Ascii Number L_LINE_COUNTER;
+
+  Include "swsut100.var"
+  Include "swsut200.var"
+  Include "swsut300.var"
+  Include "csfonts.inc"
+
+Initialization
+
+  Deletefile (L_FILE_NAME);
+
+
+Access impENDORSE,
+       Set impENDORSE:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           impENDORSE:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           impENDORSE:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic;
+
+Access SFPEND,
+       Set SFPEND:POLICY_NO       = SFPPRINT1:POLICY_NO ,
+           SFPEND:POL_YEAR        = SFPPRINT1:POL_YEAR ,
+           SFPEND:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE , Generic;
+
+Access impDESC,
+       Set impDESC:POLICY_NO       = SFPPRINT1:POLICY_NO ,
+           impDESC:POL_YEAR        = SFPPRINT1:POL_YEAR ,
+           impDESC:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE , Generic;--Approximate ;
+
+Access SFPLOCATION,
+       Set SFPLOCATION:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           SFPLOCATION:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           SFPLOCATION:END_SEQUENCE = SFPPRINT1:END_SEQUENCE ,Generic;
+
+Update
+
+While (SFPEND:POLICY_NO       = SFPPRINT1:POLICY_NO And
+       SFPEND:POL_YEAR        = SFPPRINT1:POL_YEAR And
+       SFPEND:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE And
+       SFPEND:CODE            <> "MPL17  ")
+
+  {
+    Next SFPEND
+  }
+
+While (impENDORSE:POLICY_NO       = SFPPRINT1:POLICY_NO And
+       impENDORSE:POL_YEAR        = SFPPRINT1:POL_YEAR And
+       impENDORSE:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE And
+       impENDORSE:CODE            <> "MPL17  ")
+  {
+    Next impENDORSE
+
+  }
+If impENDORSE:CODE = "MPL17  " Then
+  {
+
+Access SFPNAME,
+       Set SFPNAME:POLICY_NO       = SFPPRINT1:POLICY_NO ,
+           SFPNAME:POL_YEAR        = SFPPRINT1:POL_YEAR ,
+           SFPNAME:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE , Generic
+
+Include "swsut100.inc"
+I_CODE = "MPL17  "
+Include "swsut200.inc"
+Include "swsut300.inc"
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h7000V",
+                      L_COPYRIGHT_6,L_ARIAL_9," 1999 MSO, Inc.",L_ARIAL_BOLD_9,
+                      "<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_12,"<033>&a4300h120V",
+          Trun(SFSOPTEND:FORM_PRINT)," ",L_ARIAL_BOLD_9,SFSOPTEND:EDITION_PRINT,
+          "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,
+                      "<033>&a90h+0V","VALUABLE ARTICLES",
+                      "<033>&a+25h-30V<033>*c80h3v0P",
+                      "<033>&a+105h+30V", "FURS, JEWELRY, ",
+                      L_ARIAL_ITALIC_BOLD_9,"SILVERWARE ",
+                      "<033>&a+0h+20V",L_BULLET_6,"<033>&a+0h-20V",
+                      L_ARIAL_BOLD_9," SECTION I","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a90h+0V",
+                      "This endorsement extends the covered causes of loss ",
+                      "with respect to certain personal property ",
+                      "under Coverage C, subject to the amount",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a90h+0V",
+                      "of insurance specified in this endorsement (MPL 17).",
+                      "The required information may be shown in this ",
+                      "endorsement or elsewhere in this ",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a90h+0V",
+                      "policy.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+20V",
+                      "The provisions of this endorsement apply only ",
+                      "when the endorsement number is listed in the ",
+                      "Declarations.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "Except as provided below, all ",
+                      "other provisions in this policy are unchanged.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a90h-60V<033>*c5800h5v0P",
+                      "<NL>","<NL>")           --Horizontal line
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%n%s%s",L_ARIAL_9,"<033>&a90h+0V",
+                      "Policy # ",SFPPRINT1:POLICY_NO,"<NL>","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "1.","<033>&a250h+0V","SCHEDULE","<NL>","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,
+                              "<033>&a250h+0V","$",
+                              L_ARIAL_BOLD_9,"<033>&a1000h+0V",
+                              "Coverage Limit under MPL 17.")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+While (impENDORSE:POLICY_NO    = SFPPRINT1:POLICY_NO  And
+       impENDORSE:POL_YEAR     = SFPPRINT1:POL_YEAR And
+       impENDORSE:END_SEQUENCE = SFPPRINT1:END_SEQUENCE And
+       impENDORSE:CODE         = "MPL17  " )
+
+{
+  If impENDORSE:LIMIT[1] <> 0 Then
+    {
+      Writefile(L_FILE_NAME,"%s%s%s","<033>&a300h+0V",
+                          L_LETTER_GOTHIC_BOLD_10,
+                          Str(impENDORSE:LIMIT[1],"Z,ZZZ"))
+      L_LINE_COUNTER =L_LINE_COUNTER +2
+    }
+  Next impENDORSE
+}
+
+
+
+
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s","<NL>","<NL>",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "2.","<033>&a250h+0V","ADDITIONAL POLICY PROVISIONS","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+0V",
+                      "A.","<033>&a420h+0V","Covered Causes Of Loss","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "Any fortuitous direct physical loss not otherwise ",
+                      "excluded by this policy.","<NL>","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+0V",
+                      "B.","<033>&a420h+0V","Covered Property","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "<033>&a+0h+20V",L_BULLET_6,"<033>&a+0h-20V",
+                      L_ARIAL_9,"<033>&a590h+0V","Furs.",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+40V",
+                      "<033>&a+0h+20V",L_BULLET_6,"<033>&a+0h-20V",
+                      L_ARIAL_9,"<033>&a590h+0V","Jewelry, watches, precious and ",
+                      "semiprecious stones.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+40V",
+                      "<033>&a+0h+20V",L_BULLET_6,"<033>&a+0h-20V",
+                      L_ARIAL_ITALIC_9,"<033>&a590h+0V","Silverware.",
+                      "<NL>","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+0V",
+                      "C.","<033>&a420h+0V","Section I D - Losses Not Insured",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "Only exclusion 5. and items A, B, C, F, and G. of ",
+                      "exclusion 11. apply. No other exclusions apply to ",
+                      "property covered by this","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "endorsement (MPL 17).","<NL>","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+0V",
+                      "D.","<033>&a420h+0V","Section I E - Conditions",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+0V","1.",
+                      "<033>&a590h+0V","Limit of Liability",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a590h+0V",
+                      "Our ",L_ARIAL_9,"maximum liability for loss to any ",
+                      "one article of fur or any one article of jewelry, ",
+                      "watches, precious or semiprecious","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "stones is $1,000.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a590h+40V",
+                      "Our ",L_ARIAL_9,"total maximum liability for loss ",
+                      "under this endorsement (MPL 17) is the specified ",
+                      "coverage limit shown in this","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "endorsement.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+40V","2.",
+                      "<033>&a590h+0V","Deductible","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "The Section I deductible is applicable to ",
+                      "property covered by this endorsement.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+40V","3.",
+                      "<033>&a590h+0V","Recovery","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "Exclusion 3. G. of Section I C - Property Not Covered ",
+                      "in form MPL 01 is replaced by the following:","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a590h+40V",
+                      "Loss is not recoverable under this policy if paid by ",
+                      "others, or the article is specifically described and ",
+                      "insured either by this",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "policy or by any other insurance.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+80V",
+                      "E.","<033>&a420h+0V","Optional Endorsement",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+0V",
+                      "Replacement Coverage - Endorsement MPL 49",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "If endorsement MPL 49 is listed in the Declarations, ",
+                      "property covered under this endorsement (MPL 17) is ",
+                      "subject to","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "replacement coverage provisions. Replacement ",
+                      "coverage is still subject to the per item limit of ",
+                      "liability. ","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+  }
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

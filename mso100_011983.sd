@@ -1,0 +1,736 @@
+%%
+Program
+/*
+Date Written: Sept. 13, 2007
+
+Name: mso100_011983.sd
+
+Copyright (c) 2007, SCIPS.com Inc.
+
+Modify
+Date                   By
+-------------------------------------------
+
+
+-------------------------------------------
+*/
+  Name = "mso100_011983" ;
+  Type = "File" ;
+  Domain = "SFPPRINT1";
+  Padcharacter = Space ;
+
+  String L_FILE_NAME[16] = "mso100_011983.cq";
+  String L_STATE[3];
+  string l_font[35] ;
+  String L_AGENT_TEL[10];
+  String L_COMPANY[10]="";
+  String L_COPY_NAME[20];
+  String L_SFPNAME_ZIP[10] = "";
+  String L_AGENT_ZIP;
+
+  String L_COMPANY_ZIP[10];
+  String L_POLICY_DECLARATION[100];
+  String L_LOB_CODE[10];
+  string i_code[7],
+         l_code[7];
+
+  Unsigned Ascii Number L_LOOP;
+  Unsigned Ascii Number L_LINE_COUNTER;
+  Unsigned Ascii Number L_MAX_LINES=60,
+                        l_enter[1] ;
+
+  unsigned ascii number l_prem_no[4] = 0 ;
+  unsigned ascii number l_build_no[4] = 0 ;
+
+  Include "header.var"
+  Include "csfonts.inc"
+  Include "sfsrevname7.var"
+  Include "swsut100.var"
+  Include "line_spacing.var"
+
+Initialisation
+  Deletefile(L_FILE_NAME);   --house cleaning making sure file is removed before each run
+
+  L_COPY_NAME = COMMANDLINE[1,20]
+
+Update
+
+  Access SFPNAME,
+     Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO,
+         SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR,
+         SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE,Exact
+
+  Access SFPLOCATION,
+     Set SFPLOCATION:POLICY_NO    = SFPPRINT1:POLICY_NO,
+         SFPLOCATION:POL_YEAR     = SFPPRINT1:POL_YEAR,
+         SFPLOCATION:END_SEQUENCE = SFPPRINT1:END_SEQUENCE,Generic
+
+  Access SFSAGENT,
+     Set SFSAGENT:COMPANY_ID = SFPNAME:COMPANY_ID,
+         SFSAGENT:AGENT_NO   = SFPNAME:AGENT_NO, Exact
+
+  Access SFSCOMPANY,
+     Set SFSCOMPANY:COMPANY_ID = SFPNAME:COMPANY_ID , Exact
+
+  Access SFPMASTER,
+     Set SFPMASTER:POLICY_NO    = SFPPRINT1:POLICY_NO,
+         SFPMASTER:POL_YEAR     = SFPPRINT1:POL_YEAR,
+         SFPMASTER:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, generic
+
+  Access sfpend_alias,
+     Set sfpend_alias:POLICY_NO    = SFPPRINT1:POLICY_NO,
+         sfpend_alias:POL_YEAR     = SFPPRINT1:POL_YEAR,
+         sfpend_alias:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, generic
+
+  Access scpcontractor,
+     Set scpcontractor:POLICY_NO    = SFPPRINT1:POLICY_NO,
+         scpcontractor:POL_YEAR     = SFPPRINT1:POL_YEAR,
+         scpcontractor:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, generic
+
+  Access cppumbrella,
+     Set cppumbrella:POLICY_NO    = SFPPRINT1:POLICY_NO,
+         cppumbrella:POL_YEAR     = SFPPRINT1:POL_YEAR,
+         cppumbrella:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, generic
+
+  Access cppendorse,
+     Set cppendorse:POLICY_NO    = SFPPRINT1:POLICY_NO,
+         cppendorse:POL_YEAR     = SFPPRINT1:POL_YEAR,
+         cppendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, generic
+
+  Access SFSLINE,
+     Set SFSLINE:COMPANY_ID       = SFPNAME:COMPANY_ID,
+         SFSLINE:LINE_OF_BUSINESS = SFPNAME:LINE_OF_BUSINESS,
+         sfsline:lob_subline      = "00", exact
+
+  L_LOB_CODE = SFSLINE:LOB_CODE
+
+  Access SCIPSCONTROL,
+     Set SCIPSCONTROL:COMPANY_ID = SFPNAME:COMPANY_ID,
+         SCIPSCONTROL:STATE      = I_STATE,
+         SCIPSCONTROL:LOB_CODE   = L_LOB_CODE, generic
+
+  Include "swsut100.inc"
+  l_code = "MSO100"
+
+ if sfsline:lob_code one of "SCP" then
+   {
+     do SCP
+   }
+ else
+ if sfsline:lob_code one of "UMBRELLA" then
+   {
+     do UMBRELLA
+   }
+ else
+-- If sfsline:lob_code not one of "UMBRELLA" , "SCP" then
+   {
+     do CPP
+   }
+
+Screen Exit
+  Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+  Closefile(L_FILE_NAME)
+--End
+
+Procedure definition
+
+procedure SCP
+begin
+while sfpend_alias:POLICY_NO    = SFPPRINT1:POLICY_NO and
+      sfpend_alias:POL_YEAR     = SFPPRINT1:POL_YEAR and
+      sfpend_alias:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+{
+ if sfpend_alias:code = l_code then
+ begin
+   L_SFPNAME_ZIP = If (Val(SFPNAME:ZIPCODE_1_4) = 0) Then
+                     SFPNAME:ZIPCODE_5_9
+                   Else
+                     SFPNAME:ZIPCODE_5_9 + "-" + SFPNAME:ZIPCODE_1_4
+
+   L_AGENT_ZIP =  If (Val(SFSAGENT:STR_ZIPCODE[6,9]) = 0) Then
+                     SFSAGENT:STR_ZIPCODE[1,5]
+                   Else
+                     SFSAGENT:STR_ZIPCODE[1,5] + "-" + SFSAGENT:STR_ZIPCODE[6,9]
+
+   L_COMPANY_ZIP  =  If (Val(SFSCOMPANY:STR_ZIPCODE[6,9]) = 0) Then
+                        SFSCOMPANY:STR_ZIPCODE[1,5]
+                      Else
+                        SFSCOMPANY:STR_ZIPCODE[1,5] + "-" +
+                        SFSCOMPANY:STR_ZIPCODE[6,9]
+
+   L_AGENT_TEL = SFSAGENT:TELEPHONE[1]
+
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+ Writefile(L_FILE_NAME,"%s","<033>&a4200h7250V")
+ Writefile(L_FILE_NAME,"%s","Date Printed: ")
+ Writefile(L_FILE_NAME,"%s",Str(TODAYSDATE,"mm/dd/yyyy"))
+ Writefile(L_FILE_NAME,"%s","<033>&a2400h+0V")
+ Writefile(L_FILE_NAME,"%s",L_COPY_NAME)
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+ Writefile(L_FILE_NAME,"%s","<033>&a200h+0V")
+ Writefile(L_FILE_NAME,"%s","M.S.O. No. 100 PSB (1-83)")
+
+ Include "header.inc"
+
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_12)
+ Writefile(L_FILE_NAME,"%s","<033>&a200h+0V")
+ Writefile(L_FILE_NAME,"%s","Policy Number : ")
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_14)
+ Writefile(L_FILE_NAME,"%s",Trun(SFSLINE:ALPHA))
+ Writefile(L_FILE_NAME,"%n",SFPNAME:POLICY_NO)
+
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s","<033>&f0S")
+
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+ Writefile(L_FILE_NAME,"%s","<033>&a190h+0V")
+ Writefile(L_FILE_NAME,"%s","Named Insured and Mailing Address")
+ Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+ Writefile(L_FILE_NAME,"%s","Agent -")
+ Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+ Writefile(L_FILE_NAME,"%n",SFSAGENT:AGENT_NO)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s","<033>&f0S")
+ Writefile(L_FILE_NAME,"%s",L_ARIAL)
+
+ For L_LOOP = 1 To 3
+   {
+     I_NAME=SFPNAME:NAME[L_LOOP,1,40]
+     Include "sfsrevname7.pro"
+     If SFPNAME:NAME[L_LOOP] <> "" Then
+       {
+         Writefile(L_FILE_NAME,"%s","<033>&a194h+0V")
+         Writefile(L_FILE_NAME,"%s",I_REV_NAME)
+         Writefile(L_FILE_NAME,"%s","<NL>")
+       }
+   }
+
+ For L_LOOP = 1 To 3
+   {
+     If (SFPNAME:ADDRESS[L_LOOP,1,40] <> "") Then
+       {
+         Writefile(L_FILE_NAME,"%s","<033>&a194h+0V")
+         Writefile(L_FILE_NAME,"%s",SFPNAME:ADDRESS[L_LOOP])
+         Writefile(L_FILE_NAME,"%s","<NL>")
+       }
+   }
+
+ Writefile(L_FILE_NAME,"%s","<033>&a194h+0V")
+ Writefile(L_FILE_NAME,"%s",Trun(SFPNAME:CITY))
+ Writefile(L_FILE_NAME,"%s",", ")
+ Writefile(L_FILE_NAME,"%s",SFPNAME:STR_STATE)
+ Writefile(L_FILE_NAME,"%s"," ")
+ Writefile(L_FILE_NAME,"%s",L_SFPNAME_ZIP)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s","<033>&f1S")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL)
+
+ For L_LOOP = 1 To 3
+  {
+    If SFSAGENT:NAME[L_LOOP] <> "" Then
+      {
+        Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+        Writefile(L_FILE_NAME,"%s",SFSAGENT:NAME[L_LOOP])
+        Writefile(L_FILE_NAME,"%s","<NL>")
+      }
+  }
+ For L_LOOP = 1 To 3
+  {
+    If SFSAGENT:ADDRESS[L_LOOP] <> "" Then
+      {
+        Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+        Writefile(L_FILE_NAME,"%s",SFSAGENT:ADDRESS[L_LOOP])
+        Writefile(L_FILE_NAME,"%s","<NL>")
+      }
+  }
+
+ Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+ Writefile(L_FILE_NAME,"%s",Trun(SFSAGENT:CITY))
+ Writefile(L_FILE_NAME,"%s",", ")
+ Writefile(L_FILE_NAME,"%s",SFSAGENT:STR_STATE)
+ Writefile(L_FILE_NAME,"%s"," ")
+ Writefile(L_FILE_NAME,"%s",L_AGENT_ZIP)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ If SFSAGENT:TELEPHONE[1] <> "" Then
+  {
+    Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+    Writefile(L_FILE_NAME,"%s","(")
+    Writefile(L_FILE_NAME,"%s",L_AGENT_TEL[1,3])
+    Writefile(L_FILE_NAME,"%s",") ")
+    Writefile(L_FILE_NAME,"%s",L_AGENT_TEL[4,6])
+    Writefile(L_FILE_NAME,"%s","-")
+    Writefile(L_FILE_NAME,"%s",L_AGENT_TEL[7,10])
+    Writefile(L_FILE_NAME,"%s","<NL>")
+  }
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+ Writefile(L_FILE_NAME,"%s","<033>&a193h3200V")
+ Writefile(L_FILE_NAME,"%s","2.  Policy Term: ")
+ Writefile(L_FILE_NAME,"%s",L_ARIAL)
+ Writefile(L_FILE_NAME,"%s","12:01 A.M.  Standard Time From ")
+ Writefile(L_FILE_NAME,"%d",SFPNAME:EFF_DATE)
+ Writefile(L_FILE_NAME,"%s"," to ")
+ Writefile(L_FILE_NAME,"%d",SFPNAME:EXP_DATE)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+ Writefile(L_FILE_NAME,"%s","<033>&a2200h+0V")
+ Writefile(L_FILE_NAME,"%s","Policy Changes")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+  Access scpdesc,
+     Set scpdesc:POLICY_NO    = sfpprint1:POLICY_NO,
+         scpdesc:POL_YEAR     = sfpprint1:POL_YEAR,
+         scpdesc:END_SEQUENCE = sfpprint1:END_SEQUENCE,
+         scpdesc:prem_no      = scpcontractor:prem_no,
+         scpdesc:build_no     = scpcontractor:build_no, generic
+
+While scpdesc:POLICY_NO    = sfpprint1:POLICY_NO And
+      scpdesc:POL_YEAR     = sfpprint1:POL_YEAR And
+      scpdesc:END_SEQUENCE = sfpprint1:END_SEQUENCE
+  {
+   if scpdesc:code = "MSO100" then
+     begin
+        If scpdesc:description <> "" Then
+          {
+            l_character_string = scpdesc:description
+            l_font             = l_arial_9
+            l_h_position       = "200"
+            l_v_position       = "+0"
+            l_max_char         = 100
+            l_max_lines        = 50
+            Include "line_spacing.inc"
+           }
+     end
+     Next scpdesc
+   }
+  end
+  next sfpend_alias
+}
+
+end
+
+
+Procedure UMBRELLA
+begin
+while sfpend_alias:POLICY_NO    = SFPPRINT1:POLICY_NO and
+      sfpend_alias:POL_YEAR     = SFPPRINT1:POL_YEAR and
+      sfpend_alias:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+{
+ if sfpend_alias:code = l_code then
+ begin
+   Access SFPLOCATION,
+      Set SFPLOCATION:POLICY_NO    = SFPPRINT1:POLICY_NO,
+          SFPLOCATION:POL_YEAR     = SFPPRINT1:POL_YEAR,
+          SFPLOCATION:END_SEQUENCE = SFPPRINT1:END_SEQUENCE,
+          sfplocation:prem_no      = sfpend_alias:prem_no,
+          sfplocation:build_no     = sfpend_alias:build_no, Generic
+
+  Access cppdesc,
+     Set cppdesc:POLICY_NO    = SFPPRINT1:POLICY_NO,
+         cppdesc:POL_YEAR     = SFPPRINT1:POL_YEAR,
+         cppdesc:END_SEQUENCE = SFPPRINT1:END_SEQUENCE,
+         cppdesc:prem_no      = sfpend_alias:prem_no,
+         cppdesc:build_no     = sfpend_alias:build_no,
+         cppdesc:code         = l_code,  generic
+
+   L_SFPNAME_ZIP = If (Val(SFPNAME:ZIPCODE_1_4) = 0) Then
+                     SFPNAME:ZIPCODE_5_9
+                   Else
+                     SFPNAME:ZIPCODE_5_9 + "-" + SFPNAME:ZIPCODE_1_4
+
+   L_AGENT_ZIP =  If (Val(SFSAGENT:STR_ZIPCODE[6,9]) = 0) Then
+                     SFSAGENT:STR_ZIPCODE[1,5]
+                   Else
+                     SFSAGENT:STR_ZIPCODE[1,5] + "-" + SFSAGENT:STR_ZIPCODE[6,9]
+
+   L_COMPANY_ZIP  =  If (Val(SFSCOMPANY:STR_ZIPCODE[6,9]) = 0) Then
+                        SFSCOMPANY:STR_ZIPCODE[1,5]
+                      Else
+                        SFSCOMPANY:STR_ZIPCODE[1,5] + "-" +
+                        SFSCOMPANY:STR_ZIPCODE[6,9]
+
+   L_AGENT_TEL = SFSAGENT:TELEPHONE[1]
+
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+ Writefile(L_FILE_NAME,"%s","<033>&a4200h7250V")
+ Writefile(L_FILE_NAME,"%s","Date Printed: ")
+ Writefile(L_FILE_NAME,"%s",Str(TODAYSDATE,"mm/dd/yyyy"))
+ Writefile(L_FILE_NAME,"%s","<033>&a2400h+0V")
+ Writefile(L_FILE_NAME,"%s",L_COPY_NAME)
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+ Writefile(L_FILE_NAME,"%s","<033>&a200h+0V")
+ Writefile(L_FILE_NAME,"%s","M.S.O. No. 100 PSB (1-83)")
+
+ Include "header.inc"
+
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_12)
+ Writefile(L_FILE_NAME,"%s","<033>&a200h+0V")
+ Writefile(L_FILE_NAME,"%s","Policy Number : ")
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_14)
+ Writefile(L_FILE_NAME,"%s",Trun(SFSLINE:ALPHA))
+ Writefile(L_FILE_NAME,"%n",SFPNAME:POLICY_NO)
+
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s","<033>&f0S")
+
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+ Writefile(L_FILE_NAME,"%s","<033>&a190h+0V")
+ Writefile(L_FILE_NAME,"%s","Named Insured and Mailing Address")
+ Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+ Writefile(L_FILE_NAME,"%s","Agent -")
+ Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+ Writefile(L_FILE_NAME,"%n",SFSAGENT:AGENT_NO)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s","<033>&f0S")
+ Writefile(L_FILE_NAME,"%s",L_ARIAL)
+
+ For L_LOOP = 1 To 3
+   {
+     I_NAME=SFPNAME:NAME[L_LOOP,1,40]
+     Include "sfsrevname7.pro"
+     If SFPNAME:NAME[L_LOOP] <> "" Then
+       {
+         Writefile(L_FILE_NAME,"%s","<033>&a194h+0V")
+         Writefile(L_FILE_NAME,"%s",I_REV_NAME)
+         Writefile(L_FILE_NAME,"%s","<NL>")
+       }
+   }
+
+ For L_LOOP = 1 To 3
+   {
+     If (SFPNAME:ADDRESS[L_LOOP,1,40] <> "") Then
+       {
+         Writefile(L_FILE_NAME,"%s","<033>&a194h+0V")
+         Writefile(L_FILE_NAME,"%s",SFPNAME:ADDRESS[L_LOOP])
+         Writefile(L_FILE_NAME,"%s","<NL>")
+       }
+   }
+
+ Writefile(L_FILE_NAME,"%s","<033>&a194h+0V")
+ Writefile(L_FILE_NAME,"%s",Trun(SFPNAME:CITY))
+ Writefile(L_FILE_NAME,"%s",", ")
+ Writefile(L_FILE_NAME,"%s",SFPNAME:STR_STATE)
+ Writefile(L_FILE_NAME,"%s"," ")
+ Writefile(L_FILE_NAME,"%s",L_SFPNAME_ZIP)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s","<033>&f1S")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL)
+
+ For L_LOOP = 1 To 3
+  {
+    If SFSAGENT:NAME[L_LOOP] <> "" Then
+      {
+        Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+        Writefile(L_FILE_NAME,"%s",SFSAGENT:NAME[L_LOOP])
+        Writefile(L_FILE_NAME,"%s","<NL>")
+      }
+  }
+ For L_LOOP = 1 To 3
+  {
+    If SFSAGENT:ADDRESS[L_LOOP] <> "" Then
+      {
+        Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+        Writefile(L_FILE_NAME,"%s",SFSAGENT:ADDRESS[L_LOOP])
+        Writefile(L_FILE_NAME,"%s","<NL>")
+      }
+  }
+
+ Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+ Writefile(L_FILE_NAME,"%s",Trun(SFSAGENT:CITY))
+ Writefile(L_FILE_NAME,"%s",", ")
+ Writefile(L_FILE_NAME,"%s",SFSAGENT:STR_STATE)
+ Writefile(L_FILE_NAME,"%s"," ")
+ Writefile(L_FILE_NAME,"%s",L_AGENT_ZIP)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ If SFSAGENT:TELEPHONE[1] <> "" Then
+  {
+    Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+    Writefile(L_FILE_NAME,"%s","(")
+    Writefile(L_FILE_NAME,"%s",L_AGENT_TEL[1,3])
+    Writefile(L_FILE_NAME,"%s",") ")
+    Writefile(L_FILE_NAME,"%s",L_AGENT_TEL[4,6])
+    Writefile(L_FILE_NAME,"%s","-")
+    Writefile(L_FILE_NAME,"%s",L_AGENT_TEL[7,10])
+    Writefile(L_FILE_NAME,"%s","<NL>")
+  }
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+ Writefile(L_FILE_NAME,"%s","<033>&a193h3200V")
+ Writefile(L_FILE_NAME,"%s","2.  Policy Term: ")
+ Writefile(L_FILE_NAME,"%s",L_ARIAL)
+ Writefile(L_FILE_NAME,"%s","12:01 A.M.  Standard Time From ")
+ Writefile(L_FILE_NAME,"%d",SFPNAME:EFF_DATE)
+ Writefile(L_FILE_NAME,"%s"," to ")
+ Writefile(L_FILE_NAME,"%d",SFPNAME:EXP_DATE)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+ Writefile(L_FILE_NAME,"%s","<033>&a2200h+0V")
+ Writefile(L_FILE_NAME,"%s","Policy Changes")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+While cppdesc:POLICY_NO    = SFPPRINT1:POLICY_NO And
+      cppdesc:POL_YEAR     = SFPPRINT1:POL_YEAR And
+      cppdesc:END_SEQUENCE = SFPPRINT1:END_SEQUENCE and
+      cppdesc:prem_no      = sfpend_alias:prem_no and
+      cppdesc:build_no     = sfpend_alias:build_no
+  {
+  if cppdesc:code = l_code then
+   begin
+     For L_LOOP = 1 To 10
+      {
+        If cppdesc:description_1[L_LOOP] <> "" Then
+          {
+           Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+0V")
+           Writefile(L_FILE_NAME,"%s",cppdesc:description_1[l_loop])
+           Writefile(L_FILE_NAME,"%s","<NL>")
+          }
+       }
+   end
+
+    Next cppdesc
+  }
+
+  end
+  next sfpend_alias
+}
+
+
+end
+
+Procedure CPP
+begin
+while sfpend_alias:POLICY_NO    = SFPPRINT1:POLICY_NO and
+      sfpend_alias:POL_YEAR     = SFPPRINT1:POL_YEAR and
+      sfpend_alias:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+{
+ if sfpend_alias:code = l_code then
+ begin
+   Access SFPLOCATION,
+      Set SFPLOCATION:POLICY_NO    = SFPPRINT1:POLICY_NO,
+          SFPLOCATION:POL_YEAR     = SFPPRINT1:POL_YEAR,
+          SFPLOCATION:END_SEQUENCE = SFPPRINT1:END_SEQUENCE,
+          sfplocation:prem_no      = sfpend_alias:prem_no,
+          sfplocation:build_no     = sfpend_alias:build_no, Generic
+
+  Access cppendorse,
+     Set cppendorse:POLICY_NO    = SFPPRINT1:POLICY_NO,
+         cppendorse:POL_YEAR     = SFPPRINT1:POL_YEAR,
+         cppendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE,
+         cppendorse:prem_no      = sfpend_alias:prem_no,
+         cppendorse:build_no     = sfpend_alias:build_no,
+         cppendorse:code         = l_code,  generic
+
+   L_SFPNAME_ZIP = If (Val(SFPNAME:ZIPCODE_1_4) = 0) Then
+                     SFPNAME:ZIPCODE_5_9
+                   Else
+                     SFPNAME:ZIPCODE_5_9 + "-" + SFPNAME:ZIPCODE_1_4
+
+   L_AGENT_ZIP =  If (Val(SFSAGENT:STR_ZIPCODE[6,9]) = 0) Then
+                     SFSAGENT:STR_ZIPCODE[1,5]
+                   Else
+                     SFSAGENT:STR_ZIPCODE[1,5] + "-" + SFSAGENT:STR_ZIPCODE[6,9]
+
+   L_COMPANY_ZIP  =  If (Val(SFSCOMPANY:STR_ZIPCODE[6,9]) = 0) Then
+                        SFSCOMPANY:STR_ZIPCODE[1,5]
+                      Else
+                        SFSCOMPANY:STR_ZIPCODE[1,5] + "-" +
+                        SFSCOMPANY:STR_ZIPCODE[6,9]
+
+   L_AGENT_TEL = SFSAGENT:TELEPHONE[1]
+
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+ Writefile(L_FILE_NAME,"%s","<033>&a4200h7250V")
+ Writefile(L_FILE_NAME,"%s","Date Printed: ")
+ Writefile(L_FILE_NAME,"%s",Str(TODAYSDATE,"mm/dd/yyyy"))
+ Writefile(L_FILE_NAME,"%s","<033>&a2400h+0V")
+ Writefile(L_FILE_NAME,"%s",L_COPY_NAME)
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+ Writefile(L_FILE_NAME,"%s","<033>&a200h+0V")
+ Writefile(L_FILE_NAME,"%s","M.S.O. No. 100 PSB (1-83)")
+
+ Include "header.inc"
+
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_12)
+ Writefile(L_FILE_NAME,"%s","<033>&a200h+0V")
+ Writefile(L_FILE_NAME,"%s","Policy Number : ")
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_14)
+ Writefile(L_FILE_NAME,"%s",Trun(SFSLINE:ALPHA))
+ Writefile(L_FILE_NAME,"%n",SFPNAME:POLICY_NO)
+
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s","<033>&f0S")
+
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+ Writefile(L_FILE_NAME,"%s","<033>&a190h+0V")
+ Writefile(L_FILE_NAME,"%s","Named Insured and Mailing Address")
+ Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+ Writefile(L_FILE_NAME,"%s","Agent -")
+ Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+ Writefile(L_FILE_NAME,"%n",SFSAGENT:AGENT_NO)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s","<033>&f0S")
+ Writefile(L_FILE_NAME,"%s",L_ARIAL)
+
+ For L_LOOP = 1 To 3
+   {
+     I_NAME=SFPNAME:NAME[L_LOOP,1,40]
+     Include "sfsrevname7.pro"
+     If SFPNAME:NAME[L_LOOP] <> "" Then
+       {
+         Writefile(L_FILE_NAME,"%s","<033>&a194h+0V")
+         Writefile(L_FILE_NAME,"%s",I_REV_NAME)
+         Writefile(L_FILE_NAME,"%s","<NL>")
+       }
+   }
+
+ For L_LOOP = 1 To 3
+   {
+     If (SFPNAME:ADDRESS[L_LOOP,1,40] <> "") Then
+       {
+         Writefile(L_FILE_NAME,"%s","<033>&a194h+0V")
+         Writefile(L_FILE_NAME,"%s",SFPNAME:ADDRESS[L_LOOP])
+         Writefile(L_FILE_NAME,"%s","<NL>")
+       }
+   }
+
+ Writefile(L_FILE_NAME,"%s","<033>&a194h+0V")
+ Writefile(L_FILE_NAME,"%s",Trun(SFPNAME:CITY))
+ Writefile(L_FILE_NAME,"%s",", ")
+ Writefile(L_FILE_NAME,"%s",SFPNAME:STR_STATE)
+ Writefile(L_FILE_NAME,"%s"," ")
+ Writefile(L_FILE_NAME,"%s",L_SFPNAME_ZIP)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s","<033>&f1S")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL)
+
+ For L_LOOP = 1 To 3
+  {
+    If SFSAGENT:NAME[L_LOOP] <> "" Then
+      {
+        Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+        Writefile(L_FILE_NAME,"%s",SFSAGENT:NAME[L_LOOP])
+        Writefile(L_FILE_NAME,"%s","<NL>")
+      }
+  }
+ For L_LOOP = 1 To 3
+  {
+    If SFSAGENT:ADDRESS[L_LOOP] <> "" Then
+      {
+        Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+        Writefile(L_FILE_NAME,"%s",SFSAGENT:ADDRESS[L_LOOP])
+        Writefile(L_FILE_NAME,"%s","<NL>")
+      }
+  }
+
+ Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+ Writefile(L_FILE_NAME,"%s",Trun(SFSAGENT:CITY))
+ Writefile(L_FILE_NAME,"%s",", ")
+ Writefile(L_FILE_NAME,"%s",SFSAGENT:STR_STATE)
+ Writefile(L_FILE_NAME,"%s"," ")
+ Writefile(L_FILE_NAME,"%s",L_AGENT_ZIP)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ If SFSAGENT:TELEPHONE[1] <> "" Then
+  {
+    Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+    Writefile(L_FILE_NAME,"%s","(")
+    Writefile(L_FILE_NAME,"%s",L_AGENT_TEL[1,3])
+    Writefile(L_FILE_NAME,"%s",") ")
+    Writefile(L_FILE_NAME,"%s",L_AGENT_TEL[4,6])
+    Writefile(L_FILE_NAME,"%s","-")
+    Writefile(L_FILE_NAME,"%s",L_AGENT_TEL[7,10])
+    Writefile(L_FILE_NAME,"%s","<NL>")
+  }
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+ Writefile(L_FILE_NAME,"%s","<033>&a193h3200V")
+ Writefile(L_FILE_NAME,"%s","2.  Policy Term: ")
+ Writefile(L_FILE_NAME,"%s",L_ARIAL)
+ Writefile(L_FILE_NAME,"%s","12:01 A.M.  Standard Time From ")
+ Writefile(L_FILE_NAME,"%d",SFPNAME:EFF_DATE)
+ Writefile(L_FILE_NAME,"%s"," to ")
+ Writefile(L_FILE_NAME,"%d",SFPNAME:EXP_DATE)
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+
+ Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+ Writefile(L_FILE_NAME,"%s","<033>&a2200h+0V")
+ Writefile(L_FILE_NAME,"%s","Policy Changes")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+ Writefile(L_FILE_NAME,"%s","<NL>")
+While cppendorse:POLICY_NO    = SFPPRINT1:POLICY_NO And
+      cppendorse:POL_YEAR     = SFPPRINT1:POL_YEAR And
+      cppendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE and
+      cppendorse:prem_no      = sfpend_alias:prem_no and
+      cppendorse:build_no     = sfpend_alias:build_no
+  {
+  if cppendorse:code = l_code then
+   begin
+    If cppendorse:description <> "" Then
+      {
+         l_font             = l_arial_9
+         l_v_position       = "+0"
+         l_h_position       = "200"
+         l_character_string =cppendorse:Description
+         l_max_char         = 80
+         l_max_lines        = 60
+         include "line_spacing.inc"
+
+         Writefile(L_FILE_NAME,"%s","<NL>")
+      }
+   end
+  Next cppendorse
+  }
+
+  end
+  next sfpend_alias
+}
+
+end
+
+end

@@ -1,0 +1,71 @@
+*------------------------------------------------------------------------------*
+|                                                                              |
+|                           1. Trans Date                                      |
+|                           2. Policy No                                       |
+|                           3. Header Record                                   |
+|                           4. Name Record                                     |
+|                           5. Address Record                                  |
+|                           6. State Premium Record                            |
+|                           7. Exposure                                        |
+|                           8. Other States Coverage                           |
+|                           9. Endorsement ID Record                           |
+|                          10. Cancellation/Reinstatement Record               |
+|                          11. Anniversary Rating                              |
+|                          12. Pending Rate Change                             |
+|                          13. Designated Workplaces Exclusion                 |
+|                          14. Submission Control                              |
+|                          15. Tramission Record                               |
+|                          16. Send WCPOLS                                     |
+|                          17. Send WCSTATS                                    |
+|                                                                              |
+|                                  __                                          |
+*------------------------------------------------------------------------------*
+%%
+Screen
+        Name = "sysmn004" ;
+        Type = "Menu" ;
+        Include "MENUKEYS.INC"
+        Screensize = "dynamic";
+        Windowtitle="%a     %s Workers Comp Menu     %m";
+
+        Global String G_LIB[10] ;
+        Global Unsigned Ascii Number G_POLICY_NO[9];
+        String L_ENTER[1];
+
+Functions
+1       Display "wcsmt999" ;
+2       Display "wcsmt998" ;
+3       display "wcppols_header" ;
+4       display "wcppols_name" ;
+5       display "wcppols_address" ;
+6       display "wcppols_state" ;
+7       display "wcppols_exposure" ;
+8       display "wcppols_other_states" ;
+9       display "wcppols_endorsement" ;
+10      display "wcppols_cx_reins" ;
+11      display "wcppols_anniversary" ;
+12      display "wcppols_pendingrate" ;
+13      display "wcppols_workplaces" ;
+14      display "wcppols_sub" ;
+15      display "wcppols_transmission" ;
+16      display "wcpols"  ;
+17      display "wcstats" ;
+
+97      Display "sysmn001" ;
+98      Stop ;
+99      Continue Begin
+                 If G_LIB = "" Then
+                     Begin
+                     Warning "You are about to exit, press CANCEL to exit"
+                     If Abort = "NO" Then
+                         FUNCTION = "98"
+                     End
+                 Else
+                     FUNCTION = "97"
+                 End ;
+
+Fields
+        FUNCTION ;
+
+
+End

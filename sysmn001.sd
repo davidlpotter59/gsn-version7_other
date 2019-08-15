@@ -1,0 +1,55 @@
+*------------------------------------------------------------------------------*
+|                                                                              |
+|                           1. CSEXEC Maintenance                              |
+|                           2. Queue File Maintenance                          |
+|                           3. Printer File Maintenance                        |
+|                           4. Visual Declaration Profile                      |
+|                           5. User's Email/Security                           |
+|                           6. Cron Job Maintenance                            |
+|                           7. MICR and Image Control Maintenance              |
+|                           8. Stat Reporting                                  |
+|                           9. Workers Comp - WCPOLS                           |
+|                          10. File Updates                                    |
+|                                                                              |
+|                                  __                                          |
+*------------------------------------------------------------------------------*
+%%
+Screen
+        Name = "sysmn001" ;
+        Type = "Menu" ;
+        Include "MENUKEYS.INC"
+        Screensize = "dynamic";
+        Windowtitle="%a     %s Systems Menu    %m";
+
+        Global String G_LIB[10] ;
+        Global Unsigned Ascii Number G_POLICY_NO[9];
+        String L_ENTER[1];
+
+Functions
+1       Display "sfsmt104" ;
+2       Display "sfsmt105" ;
+3       Display "sfsmt106" ;
+4       Display "sfsmt117" ;
+5       Display "sfsmt125" ;
+6       Display "sfsmt126" ;
+7       Display "sfsmt901" ; -- added 7/26/2001, MICR control setup (dlp)
+8       Display/security=99 "sysmn003" ; -- stat reporting
+9       display "sysmn004" ;
+10      Display/security=99 "sysmn002" ;
+97      Screenlib G_LIB ;
+98      Stop ;
+99      Continue Begin
+                 If G_LIB = "" Then
+                     Begin
+                     Warning "You are about to exit, press CANCEL to exit"
+                     If Abort = "NO" Then
+                         FUNCTION = "98"
+                     End
+                 Else
+                     FUNCTION = "97"
+                 End ;
+
+Fields
+        FUNCTION ;
+
+End

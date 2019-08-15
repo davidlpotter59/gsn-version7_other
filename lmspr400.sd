@@ -1,0 +1,180 @@
+%%
+Program
+        Name = "lmsPR400" ;
+        Type = "File" ;
+        Padcharacter = Space ;
+        Domain = "SFPPRINT" ;
+
+      Global Unsigned Ascii Number G_POLICY_NO[9] ,
+                                   G_YEAR[4] ,
+                                   G_END_SEQUENCE[4] ;
+
+      Global String G_QUE[10] ;
+
+      Local String L_MACRO[15]="" ,
+                   L_REPORT[15]="",
+                   L_REPORT_1[15]="",
+                   L_ENTER[1]="",
+                   L_COMPANY_ID[10]="",
+                   L_DESCRIPTION[50]="" ,
+                   L_FORM_EDITION[25]="" ,
+                   L_CSEXEC_NUMBER[12]="",
+                   l_add_form[1]="Y",
+                   l_commandline[17]="",
+                   L_CODE[7]="" ,
+                   L_MAILER[1]="N" ,
+                   L_FORM_PRINT[15],
+                   L_EDITION_PRINT[10],
+                   L_PARAMETER[20]="" ,
+                   L_COPY_NAME[15] ,
+                   L_LOB_CODE[10],
+                   L_APP[3]="sfs" ,
+                   L_DEC[15]="" ,
+                   L_PRINT_SUPP[1] ;
+
+      Local Unsigned Ascii Number L_STATE[2],
+                                  L_LINE_OF_BUSINESS[4],
+                                  l_end_sequence[4]=0,
+                                  L_POLICY_NO[9]=1 ,
+                                  L_SUB_CODE[4] ,
+                                  L_PRINT[1],
+                                  L_FORM[1]=0,
+                                  L_PREM_NO[4]=0,
+                                  L_BUILD_NO[4]=0,
+                                  L_PREMIUM[6]=0,
+                                  L_PRINTER[4]=0,
+                                  L_NO_COPIES[4]=0,
+                                  L_COPIES[4]=0 ,
+                                  L_COPIES_PRINTED[3]=0 ;
+
+      Include "csexec.var"
+      Include "swsut100.var"
+
+      Include "STDKEYS.INC"
+
+Initialisation
+L_PRINTER = Val(COMMANDLINE[1,4])
+L_CSEXEC_NUMBER = COMMANDLINE[5,17]
+
+Do BEGIN_PROCESSING
+
+Update
+
+Errors
+Writefile("lmspr400.err","%n",ERRORNUMBER)
+Writefile("lmspr400.err","%s",ERRORTEXT)
+Closefile("lmspr400.err")
+
+Procedure Definition
+
+Procedure BEGIN_PROCESSING
+Begin
+L_POLICY_NO = 0
+Access SFPPRINT1, Set SFPPRINT1:POLICY_NO = L_POLICY_NO, Approximate
+
+G_POLICY_NO    = SFPPRINT1:POLICY_NO
+G_YEAR         = SFPPRINT1:POL_YEAR
+G_END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+L_COPY_NAME    = SFPPRINT1:COPY_NAME
+
+Access SFPNAME, Set SFPNAME:POLICY_NO    = G_POLICY_NO,
+                    SFPNAME:POL_YEAR     = G_YEAR,
+                    SFPNAME:END_SEQUENCE = G_END_SEQUENCE, Generic
+
+L_MAILER = "N"
+Do GET_NO_COPIES
+
+L_PARAMETER = "sfpdecssfp.par"
+L_DEC       = L_APP+Trun(L_CSEXEC_NUMBER)+".cq"
+L_MACRO     = L_APP+Trun(L_CSEXEC_NUMBER)+".mf"
+
+Do GET_MACRO
+
+End
+
+Procedure GET_NO_COPIES
+Begin
+Access SFPSUPP, Set SFPSUPP:POLICY_NO    = G_POLICY_NO,
+                    SFPSUPP:POL_YEAR     = G_YEAR,
+                    SFPSUPP:END_SEQUENCE = G_END_SEQUENCE, Generic
+
+L_PRINT_SUPP = "N"
+while SFPSUPP:POLICY_NO    = G_POLICY_NO and
+      SFPSUPP:POL_YEAR     = G_YEAR and
+      SFPSUPP:END_SEQUENCE = G_END_SEQUENCE
+    begin
+    L_NO_COPIES = L_NO_COPIES + 1
+    L_COPIES    = L_COPIES + 1
+    If (G_END_SEQUENCE = 0 Or
+       (SFPSUPP:OK_PRINT = "Y" And
+       G_END_SEQUENCE <> 0)) Then
+        L_PRINT_SUPP = "Y"
+
+    Next SFPSUPP
+    End
+
+end
+
+Procedure GET_MACRO
+Begin
+Switch(L_COPY_NAME)
+  Case "Original    "  : L_COPIES_PRINTED = 1
+  Case "Agents Copy"   : L_COPIES_PRINTED = 2
+  Case "Home Office "  : L_COPIES_PRINTED = 3
+  Default              : L_COPIES_PRINTED = 4
+  End
+
+L_PARAMETER = "sfpdecssfp.par"
+Deletefile(L_PARAMETER)
+Writefile (L_PARAMETER,"%S",L_COPY_NAME)
+Writefile (L_PARAMETER,"<NL>")
+Closefile(L_PARAMETER)
+
+include "lmspr302.inc"
+
+access sfpmastsupp, set sfpmastsupp:policy_no    = g_policy_no,
+                        sfpmastsupp:pol_year     = g_year,
+                        sfpmastsupp:end_sequence = g_end_sequence, generic
+
+while sfpmastsupp:policy_no    = g_policy_no and
+      sfpmastsupp:pol_year     = g_year and
+      sfpmastsupp:end_sequence = g_end_sequence
+    begin
+    l_line_of_business   = sfpmastsupp:line_of_business
+    l_commandline[1,4]   = str(l_printer,4)
+    l_commandline[5]     = str(l_copies_printed,1)
+    l_commandline[6,17]  = l_csexec_number
+    access sfsline_alias, set sfsline_alias:company_id       = sfpname:company_id,
+                              sfsline_alias:line_of_business = l_line_of_business,
+                              sfsline_alias:lob_subline      = "00", generic
+
+    switch(sfsline_alias:lob_code)
+      case "AUTO"     : begin
+                        proc("cli csbatch caspr600 %s",l_commandline)
+                        end
+      case "CPP",
+           "SMP",
+           "LIABILITY",
+           "PROPERTY",
+           "CINLAND",
+           "ARTISAN",
+           "FARMFIRE" : begin
+                        proc("cli csbatch cpspr600 %s",l_commandline)
+                        end
+      case "WORK"     : begin
+                        proc("cli csbatch wcspr600 %s",l_commandline)
+                        end
+      case "UMBRELLA" : begin
+                        proc("cli csbatch cuspr600 %s",l_commandline)
+                        end
+      case "BOP"      : begin
+                        proc("cli csbatch bpspr600 %s",l_commandline)
+                        end
+      end
+
+    next sfpmastsupp
+    end
+
+end
+
+End

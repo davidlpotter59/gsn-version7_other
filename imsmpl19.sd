@@ -1,0 +1,664 @@
+%%                                                            
+/*
+Date Written: December 28, 2001
+
+Name: imsmpl19.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+12/27/2001             DWR              Modified form for MSO
+02/22/2002             RMG              Added larger dashes
+
+===========================
+*/
+
+Program
+  Name = "imsmpl19";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[11] = "imsmpl19.cq";
+ String L_COPY_NAME[20] ;
+ String L_READ;
+ Number L_START_PRINT;       --first character printed
+ Unsigned  Ascii Number L_END_PRINT;         --last character printed when l_break reaches 40C
+ Number L_BREAK = 90;       --number of characters printed before break
+ Number L_BREAK_POINT;      --where the break occurs and newline is inserted
+ Number L_LOOP;
+ Number L_PAGE_NUMBER = 1;
+ Number L_ITEM_NO = 1;
+ Unsigned Ascii Number L_ITEM_COUNTER;
+ Unsigned Ascii Number L_LINE_COUNTER;
+ Unsigned Ascii Number L_END_TOTAL_PRINT;
+ Unsigned Ascii Number L_HOLD_PRINT;
+ Unsigned Ascii Number L_MOVING_PRINT;
+ Unsigned Ascii Number L_NUM_LINES_TO_PRINT;
+ Unsigned Ascii Number L_MAX_LINE;
+ String L_PLPOUTBOARD_1_ZIP[10];
+ String L_PLPOUTBOARD_STR_ZIP1[9];
+ String L_PLPOUTBOARD_STR_ZIP2[9];
+ String L_PLPOUTBOARD_2_ZIP[10];
+
+  Include "swsut100.var"
+  Include "swsut200.var"
+  Include "swsut300.var"
+  Include "csfonts.inc"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+Access SFPNAME,
+       Set SFPNAME:POLICY_NO       = SFPPRINT1:POLICY_NO ,
+           SFPNAME:POL_YEAR        = SFPPRINT1:POL_YEAR ,
+           SFPNAME:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE , Generic
+
+Access SFPLOCATION,
+       Set SFPLOCATION:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           SFPLOCATION:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           SFPLOCATION:END_SEQUENCE = SFPPRINT1:END_SEQUENCE ,Generic
+
+Access SFPEND,
+       Set SFPEND:POLICY_NO       = SFPPRINT1:POLICY_NO ,
+           SFPEND:POL_YEAR        = SFPPRINT1:POL_YEAR ,
+           SFPEND:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE , Generic
+
+Include "swsut100.inc"
+I_CODE = "MPL19  "
+Include "swsut200.inc"
+Include "swsut300.inc"
+
+While SFPEND:POLICY_NO    = SFPPRINT1:POLICY_NO and
+      SFPEND:POL_YEAR     = SFPPRINT1:POL_YEAR and
+      SFPEND:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+{
+  If SFPEND:CODE = "MPL19 " Then
+    {
+Access SFPLOCATION,
+       Set SFPLOCATION:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           SFPLOCATION:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           SFPLOCATION:END_SEQUENCE = SFPPRINT1:END_SEQUENCE ,
+           SFPLOCATION:PREM_NO      = SFPEND:PREM_NO,
+           SFPLOCATION:BUILD_NO     = SFPEND:BUILD_NO, Generic
+
+Access impDESC,
+       Set impDESC:POLICY_NO       = SFPPRINT1:POLICY_NO ,
+           impDESC:POL_YEAR        = SFPPRINT1:POL_YEAR ,
+           impDESC:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE ,
+           impDESC:PREM_NO         = SFPEND:PREM_NO,
+           impDESC:BUILD_NO        = SFPEND:BUILD_NO,
+           impDESC:CODE            = "MPL19 ", Generic
+
+Access impOUTBOARD,
+       Set impOUTBOARD:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           impOUTBOARD:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           impOUTBOARD:END_SEQUENCE = SFPPRINT1:END_SEQUENCE ,
+           impOUTBOARD:PREM_NO      = SFPEND:PREM_NO,
+           impOUTBOARD:BUILD_NO     = SFPEND:BUILD_NO, Generic
+
+While impOUTBOARD:POLICY_NO    = SFPPRINT1:POLICY_NO and
+      impOUTBOARD:POL_YEAR     = SFPPRINT1:POL_YEAR and
+      impOUTBOARD:END_SEQUENCE = SFPPRINT1:END_SEQUENCE and
+      impOUTBOARD:PREM_NO      = SFPEND:PREM_NO and
+      impOUTBOARD:BUILD_NO     = SFPEND:BUILD_NO
+{
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%n%s",L_ARIAL_9,"<033>&a420h7000V",
+          L_COPYRIGHT_6,L_ARIAL_9," 1998 MSO, Inc.",L_ARIAL_BOLD_9,
+          "<033>&a5000h7000V","Page ",L_PAGE_NUMBER,"<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_12,"<033>&a4300h120V",
+          Trun(SFSOPTEND:FORM_PRINT)," ",L_ARIAL_BOLD_9,SFSOPTEND:EDITION_PRINT,
+          "<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "OUTBOARD MOTORS AND MOTORBOATS ","<033>&a+0h+20V",
+                      L_BULLET_6,"<033>&a+0h-20V",
+                      L_ARIAL_BOLD_9," SECTION I","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a90h+0V",
+                      "This endorsement provides specific insurance on ",
+                      "outboard motors and boats as described. ","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a90h+0V",
+                      "The required information may be shown in this ",
+                      "endorsement or elsewhere in this policy. ","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+20V",
+                      "The provisions of this endorsement apply only ",
+                      "when the endorsement number is listed in","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "the Declarations. Except as provided below, all ",
+                      "other provisions in this policy are unchanged.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a90h-60V<033>*c5800h5v0P",
+                      "<NL>","<NL>")           --Horizontal line
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%n%s%s",L_ARIAL_9,"<033>&a90h+0V",
+                      "Policy # ",SFPPRINT1:POLICY_NO,"<NL>","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "1.","<033>&a250h+0V","SCHEDULE","<NL>","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+0V","LIMIT",
+                      "<033>&a3020h+0V","ITEM","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a800h+20V",
+                      "Item 1","<033>&a+20h-30V<033>*c75h3v0P","<033>&a+100h+30V",
+                      "Outboard Motorboat","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a800h+0V",
+                      "Manufacturer","<033>&a1900h+0V","Model","<033>&a3200h+0V",
+                      "Length","<033>&a3700h+0V","Serial Number",
+                      "<033>&a5300h+0V","Year","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "$",L_LETTER_GOTHIC_BOLD_10,
+                      Str(impOUTBOARD:LIMIT[1],"ZZ,ZZZ,ZZZ"))
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%n%s%s%s%n%s%s",L_ARIAL_9,"<033>&a800h+0V",
+                      impOUTBOARD:MANUFACTURER[1],"<033>&a1900h+0V",
+                      impOUTBOARD:MODEL[1],"<033>&a3200h+0V",
+                      impOUTBOARD:LENGTH,"<033>&a3700h+0V",
+                      impOUTBOARD:SERIAL_NO[1],"<033>&a5300h+0V",
+                      impOUTBOARD:YEAR[1],"<NL>","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a800h+20V",
+                      "Item 2","<033>&a+25h-30V<033>*c75h3v0P","<033>&a+100h+30V",
+                      "Outboard Motors","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a800h+0V",
+                      "Manufacturer","<033>&a1900h+0V","Model","<033>&a3100h+0V",
+                      "Horse Power","<033>&a3700h+0V","Serial Number",
+                      "<033>&a5300h+0V","Year","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "$",L_LETTER_GOTHIC_BOLD_10,
+                      Str(impOUTBOARD:LIMIT[2],"ZZ,ZZZ,ZZZ"))
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%n%s%s%s%n%s%s",L_ARIAL_9,"<033>&a800h+0V",
+                      impOUTBOARD:MANUFACTURER[2],"<033>&a1900h+0V",
+                      impOUTBOARD:MODEL[2],"<033>&a3100h+0V",
+                      impOUTBOARD:HORSE_POWER,"<033>&a3700h+0V",
+                      impOUTBOARD:SERIAL_NO[2],"<033>&a5300h+0V",
+                      impOUTBOARD:YEAR[2],"<NL>","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a800h+20V",
+                      "Item 3","<033>&a+20h-30V<033>*c75h3v0P","<033>&a+100h+30V",
+                      "Outboard Motorboat Equipment (not covered ",
+                      "under item 1)","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "$",L_LETTER_GOTHIC_BOLD_10,
+                      Str(impOUTBOARD:LIMIT[3],"ZZ,ZZZ,ZZZ"))
+
+/*
+  While (impOUTBOARD:POLICY_NO    = SFPPRINT1:POLICY_NO  And
+         impOUTBOARD:POL_YEAR     = SFPPRINT1:POL_YEAR And
+         impOUTBOARD:END_SEQUENCE = SFPPRINT1:END_SEQUENCE)
+  {
+*/
+L_START_PRINT = 1
+L_END_PRINT = Len(Trun(impOUTBOARD:EQUIPMENT))
+L_BREAK = 100
+L_BREAK_POINT = L_BREAK
+L_LOOP = 1
+L_NUM_LINES_TO_PRINT = Len(Trun(impOUTBOARD:EQUIPMENT)) Div L_BREAK+1
+L_ITEM_NO=L_ITEM_NO +1
+
+If (Len(Trun(impOUTBOARD:EQUIPMENT)) > L_BREAK_POINT) Then
+  {
+    While L_LOOP < Len(Trun(impOUTBOARD:EQUIPMENT))
+      {
+        If ((impOUTBOARD:EQUIPMENT[L_LOOP] = " ") And
+            (L_LOOP >= L_BREAK_POINT)) Or
+            (impOUTBOARD:EQUIPMENT[L_LOOP] = "<NL>") Then
+          {
+            L_END_PRINT = L_LOOP --assigns new end print location
+            L_BREAK_POINT = L_LOOP + L_BREAK  --assigns new Break point
+            If (impOUTBOARD:EQUIPMENT[L_LOOP] <> "<NL>") Then
+              {
+                Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a800h+0V",
+                      impOUTBOARD:EQUIPMENT[L_START_PRINT,L_END_PRINT],"<NL>")
+                      L_LINE_COUNTER =L_LINE_COUNTER +1
+              }
+            Else  -- if equal to <NL> then do not end with a new line
+              {
+                L_END_PRINT = L_LOOP --assigns new end print location
+                L_BREAK_POINT = L_LOOP + L_BREAK  --assigns new break point
+                Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a800h+0V",
+                          impOUTBOARD:EQUIPMENT[L_START_PRINT,L_END_PRINT])
+              }
+             L_START_PRINT = L_LOOP + 1
+          }
+        Else  -- if len(impdesc:desc:description) less then L_break
+          If (Len(Trun(impOUTBOARD:EQUIPMENT[L_START_PRINT,
+                       Len(Trun(impOUTBOARD:EQUIPMENT))])) < L_BREAK) Then
+            {
+              If (impOUTBOARD:EQUIPMENT[L_LOOP] <> "<NL>") Then
+                {
+                  Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,
+                                 "<033>&a800h+0V",
+           impOUTBOARD:EQUIPMENT[L_START_PRINT,Len(Trun(impOUTBOARD:EQUIPMENT))]
+                     )
+                     L_LINE_COUNTER =L_LINE_COUNTER +1
+                }
+              Else
+                {
+                  Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a800h+0V",
+           impOUTBOARD:EQUIPMENT[L_START_PRINT,Len(Trun(impOUTBOARD:EQUIPMENT))])
+                }
+              L_LOOP = Len(Trun(impOUTBOARD:EQUIPMENT))
+            }
+        L_LOOP = L_LOOP + 1
+
+      }
+  }
+Else --only 30 c in impdesc therefore, no need to break - will just print
+  {
+    Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a800h+0V",
+                          impOUTBOARD:EQUIPMENT)
+
+  L_LINE_COUNTER =L_LINE_COUNTER + 1
+
+  }
+    Writefile(L_FILE_NAME,"%s","<NL>")
+    L_LINE_COUNTER =L_LINE_COUNTER +1
+/*
+  Next impOUTBOARD
+ }
+
+Access impOUTBOARD, --reaccessing impoutboard so rest of form fills with data
+       Set impOUTBOARD:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           impOUTBOARD:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           impOUTBOARD:END_SEQUENCE = SFPPRINT1:END_SEQUENCE ,Generic
+*/
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s","<NL>",L_ARIAL_BOLD_9,"<033>&a800h+0V",
+                      "Item 4","<033>&a+20h-30V<033>*c75h3v0P","<033>&a+100h+30V",
+                      "Boat Carrier Owned by ",L_ARIAL_ITALIC_BOLD_9,
+                      "Insured","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a800h+0V",
+                      "Manufacturer","<033>&a1900h+0V","Model",
+                      "<033>&a3700h+0V","Serial Number",
+                      "<033>&a5300h+0V","Year","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "$",L_LETTER_GOTHIC_BOLD_10,
+                      Str(impOUTBOARD:LIMIT[4],"ZZ,ZZZ,ZZZ"))
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%n%s%s",L_ARIAL_9,"<033>&a800h+0V",
+                      impOUTBOARD:MANUFACTURER[3],"<033>&a1900h+0V",
+                      impOUTBOARD:MODEL[3],
+                      "<033>&a3700h+0V",
+                      impOUTBOARD:SERIAL_NO[3],"<033>&a5300h+0V",
+                      impOUTBOARD:YEAR[3],"<NL>","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "Owner if not ",L_ARIAL_ITALIC_BOLD_9,"You: ",L_ARIAL_9,
+                      impOUTBOARD:OWNER_NAME,"<NL>","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "Loss Payee (and Address): ",L_ARIAL_9,"<033>&a1300h+0V",
+                      impOUTBOARD:LOSS_PAYEE_NAME,"<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a1300h+0V",
+                      impOUTBOARD:ADDRESS,"<NL>")
+
+If Val(impOUTBOARD:STR_ZIPCODE[6,9]) = 0 Then
+  {
+    Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a1300h+0V",
+                      (Trun(impOUTBOARD:CITY)),", ",impOUTBOARD:STR_STATE,"  ",
+                      impOUTBOARD:STR_ZIPCODE[1,5],"<NL>","<NL>")
+  }
+Else
+  {
+    Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a1300h+0V",
+                      (Trun(impOUTBOARD:CITY)),", ",impOUTBOARD:STR_STATE,"  ",
+                      impOUTBOARD:STR_ZIPCODE[1,5],"-",impOUTBOARD:STR_ZIPCODE[6,9]  ,
+                      "<NL>","<NL>")
+  }
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "2.","<033>&a250h+0V","ADDITIONAL POLICY PROVISIONS")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3000h+0V",
+                      "Item 3","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+0V",
+                      "A.","<033>&a420h+0V","Covered Causes of Loss")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h+0V",
+                      "Includes any related detached or detachable","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "Any fortuitous direct physical loss not otherwise")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h+0V",
+                      "equipment of the boat or motor described in","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "excluded by this policy.")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h+0V",
+                      "Items 1 and 2 of the Schedule including boat","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h+0V",
+                      "covers, oars, oar locks, anchors, life preservers,","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+0V",
+                      "B.","<033>&a420h+0V","Property Covered")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h+0V",
+                      "portable fuel containers (not covered in Item 2","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "Property described in the Schedule also")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h+0V",
+                      "of the Schedule), lines, fire extinguishers, seat","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "includes the following property:")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h+0V",
+                      "cushions, flares, horns, flags, flagstaffs, batteries,"
+                      ,"<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+0V",
+                      "Item 1")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h+0V",
+                      "battery boxes, battery chargers, pumps, and","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "Includes outboard motor equipment")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h+0V",
+                      "similar equipment.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "permanently attached to the boat, except","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "motors.")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3000h-60V",
+                      "Item 4","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+120V",
+                      "Item 2")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h-120V",
+                      "Covers carriers designed for and used to","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+120V",
+                      "Includes fuel containers, electric starting")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h-120V",
+                      "transport the outboard motorboat described in","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+120V",
+                      "equipment, and controls supplied as integral")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3000h-120V",
+                      "Item 1 of the Schedule.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+120V",
+                      "equipment with the motor by the manufacturer.")
+
+                      --End of Page one
+
+Writefile(L_FILE_NAME,"%s%s","<FF>","<NL>")
+
+                      --Top of Page two
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+0V",
+                      "C.","<033>&a590h+0V","Section I D",
+                      "<033>&a+25h-30V<033>*c75h3v0P","<033>&a+100h+30V",
+                      "Losses Not Insured")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h+0V",
+                      "3.","<033>&a3400h+0V","Newly Acquired Property","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a590h+0V",
+                      "1.","<033>&a760h+0V",L_ARIAL_9,
+                      "Only exclusion 5. and items A, B, C, F, and")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "In the event property covered by this","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+0V",
+                      "G. of exclusion 11. apply.  No other")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "endorsement is replaced, ",L_ARIAL_ITALIC_9,"we ",
+                      L_ARIAL_9,"agree to","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+0V",
+                      "exclusions apply to property covered by")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "cover such property for up to 30 days","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+0V",
+                      "this endorsement (MPL 19).")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "following acquisition. This newly acquired","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a590h+60V",
+                      "2.","<033>&a760h+0V",L_ARIAL_9,
+                      "The following property is also excluded")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-60V",
+                      "property is covered to the same extent as","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+60V",
+                      "from coverage:")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-60V",
+                      "the original property is covered by this","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a760h+60V",
+                      "(a)","<033>&a940h+0V",L_ARIAL_ITALIC_BOLD_9,
+                      "Business")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-60V",
+                      "endorsement.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+60V",
+                      "Covered property damaged while")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "This applies only if such acquisition is","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+0V",
+                      "rented to others or used to carry")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "reported to ",L_ARIAL_ITALIC_9,"us ",L_ARIAL_9,
+                      "within 30 days and the","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+0V",
+                      "persons for a fee.")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a3400h+0V",
+                      "insured ",L_ARIAL_9,"agrees to insure the property","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a760h+40V",
+                      "(b)","<033>&a940h+0V",L_ARIAL_BOLD_9,
+                      "Breakdown or Failure")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "under this endorsement and in no other","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+40V",
+                      "Covered property damaged by")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "policy.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a940h+40V",
+                      "electrical, mechanical, or structural","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+0V",
+                      "breakdown or failure.")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h+0V",
+                      "4.","<033>&a3400h+0V","Recovery","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a760h+40V",
+                      "(c)","<033>&a940h+0V",L_ARIAL_BOLD_9,
+                      "Freezing or Overheating")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "Loss is not recoverable under this policy if","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+40V",
+                      "Covered property damaged directly")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "paid by others.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+40V",
+                      "or indirectly by freezing or")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "This insurance is reduced on items 1, 2,","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+0V",
+                      "overheating.")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "and 4 of the Schedule to the extent of ",
+                      L_ARIAL_ITALIC_9,"our","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a760h+40V",
+                      "(d)","<033>&a940h+0V",L_ARIAL_BOLD_9,
+                      "Repairing")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "payment for loss to such property.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+40V",
+                      "Covered property damaged by")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "Payment of a pro rata additional premium","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+40V",
+                      "repairing or otherwise resulting")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "restores the amount of insurance on that","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a940h+40V",
+                      "from being worked on, other than")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "item.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a940h+40V",
+                      "any ensuing loss by explosion or fire.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3000h-20V",
+                      "E.","<033>&a3200h+0V","Optional Endorsements","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+40V",
+                      "D.","<033>&a590h+0V","Section I E",
+                      "<033>&a+25h-30V<033>*c75h3v0P","<033>&a+100h+30V",
+                      "Conditions")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h-40V",
+                      "1.","<033>&a3400h+0V","Operation in Coastal Waters","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a590h+40V",
+                      "1.","<033>&a760h+0V","Deductible")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h-40V",
+                      "Exclusion - Endorsement MPL 36","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+40V",
+                      "The Section I policy deductible does not")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "If endorsement MPL 36 is listed in the","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+40V",
+                      "apply to property covered by this")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "Declarations, coverage does not apply to","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+40V",
+                      "endorsement. Instead, a $50 deductible")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "operations in coastal waters.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a760h+40V",
+                      "applies to each loss occurrence.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a590h+40V",
+                      "2.","<033>&a760h+0V","Territory")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h-40V",
+                      "2.","<033>&a3400h+0V","Theft Deductible Only","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+40V",
+                      "This insurance applies to covered")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h-40V",
+                      "<033>&a+0h-30V<033>*c75h3v0P","<033>&a+100h+30V",
+                      "Endorsement MPL 37","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+40V",
+                      "property while ashore or in any body of")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "If endorsement MPL 37 is listed in the","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+40V",
+                      "water other than the Great Lakes.")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h-40V",
+                      "Declarations, the deductible applies only","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "to loss by theft including disappearance","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "of property from a known place if it is","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                      "probable that the property was stolen.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h7000V",
+                      "MPL 19 04 97 - Page 2")
+
+Writefile(L_FILE_NAME,"%s","<FF>")
+        Next impOUTBOARD
+      }
+    }
+  Next SFPEND
+}
+
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

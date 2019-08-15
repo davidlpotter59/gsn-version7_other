@@ -1,0 +1,389 @@
+%%
+/*
+Date Written: August 30, 2010
+
+Name: ap_letter.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+08/30/2010            JLB             Outdated check letter for Salem
+===========================
+*/
+
+Program
+  Name = "ap_letter";
+  Type = "File";
+  Domain = "FLAT";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[13] = "ap_letter.pcl";
+ String L_POLICY_DECLARATION[60];
+ String l_company_id[10],
+        l_arscheck_zip;
+
+ Unsigned ascii number l_policy_no[9],
+                       l_sub_code[4],
+                       l_loop[4];
+
+   Include "csfonts.inc"
+   Include "swsut100.var"
+   Include "swsut200.var"
+   Include "center2.var"
+   Include "sfsrevname7.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+l_policy_no  = val(COMMANDLINE[1,9])
+l_sub_code   = val(COMMANDLINE[10,13])
+l_company_id = uppercase(COMMANDLINE[14,23])
+
+Access arscheck,
+   Set arscheck:company_id = l_company_id,
+       arscheck:policy_no  = l_policy_no,
+       arscheck:sub_code   = l_sub_code, exact
+
+Access sfscompany,
+   Set sfscompany:company_id = l_company_id, generic
+
+  Include "swsut100.inc"
+  I_CODE = "ap_letter"
+  Include "swsut200.inc"
+
+    L_STRING = "FARMERS MUTUAL FIRE INSURANCE CO. OF"
+    L_FONT = L_ARIAL_bold_20
+    L_PITCH_HALF = 10
+    L_PITCH_FULL = 20
+    L_VERTICAL_POS = "+0"
+    L_HORIZONTAL_POS = "2880"
+    Include "center3.pro"
+
+    L_STRING = "SALEM COUNTY"
+    L_FONT = L_ARIAL_bold_20
+    L_PITCH_HALF = 10
+    L_PITCH_FULL = 20
+    L_VERTICAL_POS = "+180"
+    L_HORIZONTAL_POS = "2880"
+    Include "center3.pro"
+
+    L_STRING = "125 W. Broadway, P.O. Box 263, Salem, NJ 08079-0263"
+    L_FONT = L_ARIAL_bold_12
+    L_PITCH_HALF = 6
+    L_PITCH_FULL = 12
+    L_VERTICAL_POS = "+150"
+    L_HORIZONTAL_POS = "2880"
+    Include "center3.pro"
+
+    L_STRING = "(856) 935-1851 * FAX (856) 935-7955"
+    L_FONT = L_ARIAL_bold_12
+    L_PITCH_HALF = 6
+    L_PITCH_FULL = 12
+    L_VERTICAL_POS = "+150"
+    L_HORIZONTAL_POS = "2880"
+    Include "center3.pro"
+
+    L_STRING = "OUTDATED CHECK LETTER"
+    L_FONT = L_ARIAL_bold_12
+    L_PITCH_HALF = 6
+    L_PITCH_FULL = 12
+    L_VERTICAL_POS = "+150"
+    L_HORIZONTAL_POS = "2880"
+    Include "center3.pro"
+
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+400V")
+    Writefile(L_FILE_NAME,"%s","Date: ")
+    Writefile(L_FILE_NAME,"%s",l_letter_gothic_bold_12)
+    Writefile(L_FILE_NAME,"%s",str(todaysdate,"MM-DD-YY"))
+
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+360V")
+    Writefile(L_FILE_NAME,"%s","To: ")
+
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    I_NAME=arscheck:mailto_NAME[1,1,40]
+    Include "sfsrevname7.pro"
+    If arscheck:mailto_NAME[1] <> "" Then
+      {
+        Writefile(L_FILE_NAME,"%s%s","<033>&a400h+0V",I_REV_NAME)
+      }
+
+    I_NAME=arscheck:mailto_NAME[2,1,40]
+    Include "sfsrevname7.pro"
+    If arscheck:mailto_NAME[2] <> "" Then
+      {
+        Writefile(L_FILE_NAME,"%s%s","<033>&a400h+120V",I_REV_NAME)
+      }
+
+    I_NAME=arscheck:mailto_NAME[3,1,40]
+    Include "sfsrevname7.pro"
+    If arscheck:mailto_NAME[3] <> "" Then
+      {
+        Writefile(L_FILE_NAME,"%s%s","<033>&a400h+120V",I_REV_NAME)
+      }
+
+    If arscheck:address[1] <> "" then
+      {
+        Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+        Writefile(L_FILE_NAME,"%s",l_arial)
+        Writefile(L_FILE_NAME,"%s",arscheck:address[1])
+      }
+
+    If arscheck:address[2] <> "" then
+      {
+        Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+        Writefile(L_FILE_NAME,"%s",l_arial)
+        Writefile(L_FILE_NAME,"%s",arscheck:address[2])
+      }
+
+    If arscheck:address[3] <> "" then
+      {
+        Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+        Writefile(L_FILE_NAME,"%s",l_arial)
+        Writefile(L_FILE_NAME,"%s",arscheck:address[3])
+      }
+
+    If (Val(arscheck:STR_ZIPCODE[6,9]) = 0) Then
+      {
+        L_arscheck_ZIP = arscheck:STR_ZIPCODE[1,5]
+      }
+    Else
+      {
+        L_arscheck_ZIP =   arscheck:STR_ZIPCODE[1,5] + "-" +
+                           arscheck:STR_ZIPCODE[6,9]
+      }
+
+    Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s",trun(arscheck:city))
+    Writefile(L_FILE_NAME,"%s",", ")
+    Writefile(L_FILE_NAME,"%s",trun(arscheck:str_state))
+    Writefile(L_FILE_NAME,"%s"," ")
+--    Writefile(L_FILE_NAME,"%s",l_letter_gothic_bold_12)
+    Writefile(L_FILE_NAME,"%s",l_arscheck_zip)
+
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+400V")
+    Writefile(L_FILE_NAME,"%s","Re: ")
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+    Writefile(L_FILE_NAME,"%s","Payee: ")
+
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    If arscheck:payee_NAME[1] <> "" Then
+      {
+        I_NAME=arscheck:payee_NAME[1]
+        Include "sfsrevname7.pro"
+        Writefile(L_FILE_NAME,"%s%s","<033>&a1000h+0V",I_REV_NAME)
+      }
+
+    If arscheck:payee_NAME[2] <> "" Then
+      {
+        I_NAME=arscheck:payee_NAME[2]
+        Include "sfsrevname7.pro"
+        Writefile(L_FILE_NAME,"%s%s","<033>&a1000h+120V",I_REV_NAME)
+      }
+
+    If arscheck:payee_NAME[3] <> "" Then
+      {
+        I_NAME=arscheck:payee_NAME[3]
+        Include "sfsrevname7.pro"
+        Writefile(L_FILE_NAME,"%s%s","<033>&a1000h+120V",I_REV_NAME)
+      }
+
+    If arscheck:payee_NAME[4] <> "" Then
+      {
+        I_NAME=arscheck:payee_NAME[4]
+        Include "sfsrevname7.pro"
+        Writefile(L_FILE_NAME,"%s%s","<033>&a1000h+120V",I_REV_NAME)
+      }
+
+    If arscheck:payee_NAME[5] <> "" Then
+      {
+        I_NAME=arscheck:payee_NAME[5]
+        Include "sfsrevname7.pro"
+        Writefile(L_FILE_NAME,"%s%s","<033>&a1000h+120V",I_REV_NAME)
+      }
+
+    If arscheck:payee_NAME[6] <> "" Then
+      {
+        I_NAME=arscheck:payee_NAME[6]
+        Include "sfsrevname7.pro"
+        Writefile(L_FILE_NAME,"%s%s","<033>&a1000h+120V",I_REV_NAME)
+      }
+
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+260V")
+    Writefile(L_FILE_NAME,"%s","Check No: ")
+    Writefile(L_FILE_NAME,"%s",l_letter_gothic_bold_12)
+    Writefile(L_FILE_NAME,"%s",trun(arscheck:check_no))
+
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+130V")
+    Writefile(L_FILE_NAME,"%s","Check Date: ")
+    Writefile(L_FILE_NAME,"%s",l_letter_gothic_bold_12)
+    Writefile(L_FILE_NAME,"%d",arscheck:check_date)
+
+    Access sfsagent,
+       Set sfsagent:company_id = l_company_id,
+           sfsagent:agent_no   = arscheck:agent_no, exact
+
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+130V")
+    Writefile(L_FILE_NAME,"%s","Agent No: ")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s",sfsagent:name[1])
+
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+130V")
+    Writefile(L_FILE_NAME,"%s","Policy # ")
+    Writefile(L_FILE_NAME,"%s",l_letter_gothic_bold_12)
+    Writefile(L_FILE_NAME,"%n",arscheck:policy_no)
+
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+130V")
+    Writefile(L_FILE_NAME,"%s","Amount: ")
+    Writefile(L_FILE_NAME,"%s","$ ")
+    Writefile(L_FILE_NAME,"%s",l_letter_gothic_bold_12)
+    Writefile(L_FILE_NAME,"%s",str(arscheck:check_amount,"ZZZ,ZZZ"))
+    Writefile(L_FILE_NAME,"%s"," ")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","Return Premium owed to you")
+
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+400V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","To Whom It May Concern:")
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+280V")
+    Writefile(L_FILE_NAME,"%s","As of the current date, the CHECK ISSUED TO THE ABOVE PAYEE has not been CASHED.  This")
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+    Writefile(L_FILE_NAME,"%s","check is no longer valid since it is over 120 days old and considered OUTDATED.  In order for Farmers")
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+    Writefile(L_FILE_NAME,"%s","of Salem to process a replacement check, please complete the bottom portion of the letter and ")
+    Writefile(L_FILE_NAME,"%s",l_underline_start)
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","return")
+    Writefile(L_FILE_NAME,"%s",l_underline_end)
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+    Writefile(L_FILE_NAME,"%s",l_underline_start)
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","the entire letter")
+    Writefile(L_FILE_NAME,"%s",l_underline_end)
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s"," in the enclosed envelope.  If the letter is not returned, New Jersey Law requires that any")
+
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","unclaimed funds that are over three years old be turned over to the General Treasurer of New Jersey.")
+
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+280V")
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","PLEASE RETURN ")
+    Writefile(L_FILE_NAME,"%s",l_underline_start)
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","COMPLETED LETTER")
+    Writefile(L_FILE_NAME,"%s",l_underline_end)
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s"," TO THE ACCOUNTING DEPARTMENT.")
+
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","Sincerely,")
+
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+300V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","Mike Sendlinger")
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+    Writefile(L_FILE_NAME,"%s","Accounting Department")
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+    Writefile(L_FILE_NAME,"%s","(856) 935-1851 Ext. 116")
+
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+280V")
+    Writefile(L_FILE_NAME,"%s",l_arial_bold_9)
+    Writefile(L_FILE_NAME,"%s","I wish to claim the above funds for the outdated check referenced above.  I understand the above-mentioned")
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+    Writefile(L_FILE_NAME,"%s","check ")
+    Writefile(L_FILE_NAME,"%s",l_underline_start)
+    Writefile(L_FILE_NAME,"%s",l_arial_bold_9)
+    Writefile(L_FILE_NAME,"%s","cannot be cashed")
+    Writefile(L_FILE_NAME,"%s",l_underline_end)
+    Writefile(L_FILE_NAME,"%s",l_arial_bold_9)
+    Writefile(L_FILE_NAME,"%s",", and another check will be reissued to:")
+
+    Writefile(L_FILE_NAME,"%s",l_push)
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","Address:")
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+10V")
+    Writefile(L_FILE_NAME,"%s","<033>*c2200h8v0p") --Horizontal line
+
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+130V")
+    Writefile(L_FILE_NAME,"%s","<033>*c2200h8v0p") --Horizontal line
+
+    Writefile(L_FILE_NAME,"%s","<033>&a200h+250V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","Signed:")
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+10V")
+    Writefile(L_FILE_NAME,"%s","<033>*c1800h8v0p") --Horizontal line
+
+    Writefile(L_FILE_NAME,"%s","<033>&a600h+240V")
+    Writefile(L_FILE_NAME,"%s","<033>*c1800h8v0p") --Horizontal line
+
+    Writefile(L_FILE_NAME,"%s","<033>&a650h+240V")
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","Please ")
+    Writefile(L_FILE_NAME,"%s",l_underline_start)
+    Writefile(L_FILE_NAME,"%s","Print Name")
+    Writefile(L_FILE_NAME,"%s",l_underline_end)
+
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s"," Under Signature")
+
+    Writefile(L_FILE_NAME,"%s",l_pop)
+    Writefile(L_FILE_NAME,"%s","<033>&a3000h+240V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","Date ")
+    Writefile(L_FILE_NAME,"%s","<033>&a3350h+10V")
+    Writefile(L_FILE_NAME,"%s","<033>*c1200h8v0p") --Horizontal line
+
+    Writefile(L_FILE_NAME,"%s","<033>&a3000h+130V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","Phone # ")
+    Writefile(L_FILE_NAME,"%s","<033>&a3350h+10V")
+    Writefile(L_FILE_NAME,"%s","<033>*c1200h8v0p") --Horizontal line
+
+    Writefile(L_FILE_NAME,"%s","<033>&a3000h+250V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","Policy # ")
+    Writefile(L_FILE_NAME,"%s",l_letter_gothic_bold_12)
+    Writefile(L_FILE_NAME,"%n",arscheck:policy_no)
+    Writefile(L_FILE_NAME,"%s","<033>&a3350h+10V")
+    Writefile(L_FILE_NAME,"%s","<033>*c1200h8v0p") --Horizontal line
+
+    Writefile(L_FILE_NAME,"%s","<033>&a3300h+130V")
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","Check Never Received")
+    Writefile(L_FILE_NAME,"%s","<033>&a4400h+10V")
+    Writefile(L_FILE_NAME,"%s","<033>*c600h8v0p") --Horizontal line
+
+    Writefile(L_FILE_NAME,"%s","<033>&a3300h+130V")
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","Check Received - Lost")
+    Writefile(L_FILE_NAME,"%s","<033>&a4400h+10V")
+    Writefile(L_FILE_NAME,"%s","<033>*c600h8v0p") --Horizontal line
+    Writefile(L_FILE_NAME,"%s","<033>&a3300h+130V")
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","If holding old Check, Please return -")
+    Writefile(L_FILE_NAME,"%s","<033>&a3300h+130V")
+    Writefile(L_FILE_NAME,"%s",l_arial_bold)
+    Writefile(L_FILE_NAME,"%s","The outdated check cannot be cashed.")
+    Writefile(L_FILE_NAME,"%s","<FF>")
+
+Update
+
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

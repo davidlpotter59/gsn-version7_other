@@ -1,0 +1,441 @@
+%%                                                            
+/*
+Date Written: December 13, 2001
+
+Name: imsmpl16.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+12/20/2001             DWR              Modified form for MSO
+03/04/2002             DWR              Changes for Farmers
+
+===========================
+*/
+
+Program
+  Name = "imsmpl16";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[12] = "imsmpl16.cq";
+ String L_COPY_NAME[20] ;
+ String L_FORM_PRINT[15] ;
+ String L_EDITION_PRINT[10] ;
+ String L_INFILE[15]="imsmpl16.in";
+ String L_READ_INFILE[25];
+ String L_READ;
+ Number L_START_PRINT;       --first character printed
+ Number L_END_PRINT;         --last character printed when l_break reaches 40C
+ Number L_BREAK;             --number of characters printed before break
+ Number L_BREAK_POINT;       --where the break occurs and newline is inserted
+ Number L_LOOP;
+ Number L_PAGE_NUMBER;
+ Number L_ITEM_NO = 1;
+ Unsigned Ascii Number L_ITEM_COUNTER;
+ Unsigned Ascii Number L_LINE_COUNTER;
+ Unsigned Ascii Number L_NUM_LINES_TO_PRINT;
+ Unsigned Ascii Number L_MAX_LINE = 60;
+ Unsigned Ascii Number L_LINES_FIRST_PAGE = 40;
+
+   Include "swsut100.var"
+   Include "swsut200.var"
+   Include "swsut300.var"
+   Include "csfonts.inc"
+
+Initialization
+
+  Deletefile (L_FILE_NAME);
+
+Update
+
+Access imppersim,
+       Set imppersim:POLICY_NO    = SFPPRINT1:POL_YEAR ,
+           imppersim:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           imppersim:END_SEQUENCE = SFPPRINT1:END_SEQUENCE , Generic
+
+Access impENDORSE,
+       Set impENDORSE:POLICY_NO    = imppersim:POLICY_NO ,
+           impENDORSE:POL_YEAR     = imppersim:POL_YEAR ,
+           impENDORSE:END_SEQUENCE = imppersim:END_SEQUENCE,
+           impENDORSE:PREM_NO      = imppersim:PREM_NO ,
+           impENDORSE:BUILD_NO     = imppersim:BUILD_NO , Generic
+
+Access SFPEND,
+       Set SFPEND:POLICY_NO       = SFPPRINT1:POLICY_NO ,
+           SFPEND:POL_YEAR        = SFPPRINT1:POL_YEAR ,
+           SFPEND:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE , Generic
+
+Access impDESC,
+       Set impDESC:POLICY_NO       = SFPPRINT1:POLICY_NO ,
+           impDESC:POL_YEAR        = SFPPRINT1:POL_YEAR ,
+           impDESC:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE , Generic
+
+Access SFPLOCATION,
+       Set SFPLOCATION:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           SFPLOCATION:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           SFPLOCATION:END_SEQUENCE = SFPPRINT1:END_SEQUENCE ,Generic
+
+Access SFPNAME,
+       Set SFPNAME:POLICY_NO       = SFPPRINT1:POLICY_NO ,
+           SFPNAME:POL_YEAR        = SFPPRINT1:POL_YEAR ,
+           SFPNAME:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE , Generic
+
+While SFPEND:POLICY_NO    = SFPPRINT1:POLICY_NO And
+      SFPEND:POL_YEAR     = SFPPRINT1:POL_YEAR And
+      SFPEND:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+{
+  Access impENDORSE,
+         Set impENDORSE:POLICY_NO    = SFPPRINT1:POLICY_NO,
+             impENDORSE:POL_YEAR     = SFPPRINT1:POL_YEAR,
+             impENDORSE:END_SEQUENCE = SFPPRINT1:END_SEQUENCE,
+             impENDORSE:PREM_NO      = SFPEND:PREM_NO,
+             impENDORSE:BUILD_NO     = SFPEND:BUILD_NO,
+             impENDORSE:CODE         = "MPL16  ", Generic
+
+  If SFPEND:CODE = "MPL16  " Then
+    {
+
+      Include "swsut100.inc"
+      I_CODE = "MPL16  "
+      Include "swsut200.inc"
+      Include "swsut300.inc"
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_12,"<033>&a4300h120V",
+          Trun(SFSOPTEND:FORM_PRINT)," ",L_ARIAL_BOLD_9,SFSOPTEND:EDITION_PRINT,
+          "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a60h+0V",
+                      "MISCELLANEOUS PROPERTY FLOATER ",
+                      "<033>&a+0h+20V",L_BULLET_6,"<033>&a+0h-20V",
+                      L_ARIAL_BOLD_9," SECTION I","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a60h+0V",
+                      "This endorsement covers property described for ",
+                      "the loss as described. Property covered by this",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a60h+0V",
+                      "endorsement is not otherwise covered under Section I.",
+                      "The required information may be shown","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a60h+0V",
+                      "in this endorsement or elsewhere in the policy.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a60h+20V",
+                      "The provisions of this endorsement apply only ",
+                      "when the endorsement number is listed in ","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a60h+0V",
+                      "the Declarations. Except as provided below, ",
+                      "all other provisions in this policy are unchanged.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a60h-60V<033>*c5800h5v0P",
+                      "<NL>","<NL>")           --Horizontal line
+                      L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%n%s%s",L_ARIAL_9,"<033>&a60h+0V",
+                      "Policy # ",SFPPRINT1:POLICY_NO,"<NL>","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a60h+0V",
+                      "1.","<033>&a250h+0V","SCHEDULE","<NL>","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a60h+0V",
+                      "ITEM NO.","<033>&a825h+0V","LIMIT","<033>&a1200h+0V",
+                      "OPTION (A or B)","<033>&a2000h+0V","ARTICLE",
+                      "<033>&a3200h+0V","DESCRIPTION","<033>&a5000h+0V",
+                      "DEDUCTIBLE","<NL>","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +2
+
+L_PAGE_NUMBER = 1
+Access impDESC,
+       Set impDESC:POLICY_NO    = SFPPRINT1:POLICY_NO,
+           impDESC:POL_YEAR     = SFPPRINT1:POL_YEAR,
+           impDESC:END_SEQUENCE = SFPPRINT1:END_SEQUENCE,
+           impDESC:PREM_NO      = SFPEND:PREM_NO,
+           impDESC:BUILD_NO     = SFPEND:BUILD_NO,
+           impDESC:CODE         = "MPL16  ", Generic
+
+While (impDESC:POLICY_NO    = SFPPRINT1:POLICY_NO And
+       impDESC:POL_YEAR     = SFPPRINT1:POL_YEAR And
+       impDESC:END_SEQUENCE = SFPPRINT1:END_SEQUENCE  And
+       impDESC:CODE         = "MPL16  ")
+{
+        If (L_MAX_LINE - L_LINE_COUNTER) < L_NUM_LINES_TO_PRINT Then
+      {
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h7000V",
+                      L_COPYRIGHT_6,L_ARIAL_9," 1998 MSO, Inc.",L_ARIAL_BOLD_9)
+
+        Writefile(L_FILE_NAME,"%s%s%s%n%s",L_ARIAL_9,"<033>&a5000h7000V","Page ",
+                  L_PAGE_NUMBER,"<NL>")
+
+        Writefile(L_FILE_NAME,"%s","<FF>")
+        L_PAGE_NUMBER = L_PAGE_NUMBER +1
+        L_LINE_COUNTER =1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a60h+0V",
+                      "ITEM NO.","<033>&a825h+0V","LIMIT","<033>&a1200h+0V",
+                      "OPTION (A or B)","<033>&a2000h+0V","ARTICLE","<033>&a3200h+0V",
+                      "DESCRIPTION","<033>&a5000h+0V","DEDUCTIBLE","<NL>","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +2
+       }
+
+    L_ITEM_COUNTER =L_ITEM_COUNTER + 1
+
+    Writefile(L_FILE_NAME,"%s%s%n%s%s%s%s%s%s%s%s",L_ARIAL_9,
+                          "<033>&a60h+0V",L_ITEM_COUNTER,L_ARIAL_BOLD_9,
+                          "<033>&a500h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                          Str(impDESC:LIMIT,"ZZ,ZZZ,ZZZ"),
+                          L_ARIAL_9,"<033>&a1530h+0V",impDESC:OPTION)
+
+    Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a2000h+0V",
+                          impDESC:ARTICLE,L_ARIAL_BOLD_9,
+                          "<033>&a5020h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                          Str(impDESC:DEDUCTIBLE,"ZZ,ZZZ"))
+
+
+    L_START_PRINT = 1
+    L_END_PRINT = Len(Trun(impDESC:DESCRIPTION))
+    L_BREAK = 35
+    L_BREAK_POINT = L_BREAK
+    L_LOOP = 1
+    L_NUM_LINES_TO_PRINT = Len(Trun(impDESC:DESCRIPTION)) Div L_BREAK+1
+    L_ITEM_NO =L_ITEM_NO +1
+
+    If (Len(Trun(impDESC:DESCRIPTION)) > L_BREAK_POINT - 10) Then
+      {
+        While L_LOOP < Len(Trun(impDESC:DESCRIPTION))
+          {
+            If ((impDESC:DESCRIPTION[L_LOOP] = " ") And
+               (L_LOOP >= L_BREAK_POINT - 10)) Or
+               (impDESC:DESCRIPTION[L_LOOP] = "<NL>") Then
+              {
+                L_END_PRINT = L_LOOP
+                L_BREAK_POINT = L_LOOP + L_BREAK
+                If (impDESC:DESCRIPTION[L_LOOP] <> "<NL>") Then
+                  {
+                    Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3200h+0V",
+                        impDESC:DESCRIPTION[L_START_PRINT,L_END_PRINT],"<NL>")
+                    L_LINE_COUNTER =L_LINE_COUNTER +1
+                  }
+                Else  -- if equal to <NL> then do not end with a new line
+                  {
+                    L_END_PRINT = L_LOOP
+                    L_BREAK_POINT = L_LOOP + L_BREAK
+                    Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3200h+0V",
+                          impDESC:DESCRIPTION[L_START_PRINT,L_END_PRINT])
+                  }
+                L_START_PRINT = L_LOOP + 1
+              }
+            Else
+              If (Len(Trun(impDESC:DESCRIPTION[L_START_PRINT,Len(Trun(impDESC:DESCRIPTION))]))
+                           < L_BREAK) Then
+                {
+                  If (impDESC:DESCRIPTION[L_LOOP] <> "<NL>") Then
+                    {
+                      Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3200h+0V",
+                        impDESC:DESCRIPTION[L_START_PRINT,Len(Trun(impDESC:DESCRIPTION))],"<NL>")
+                      L_LINE_COUNTER =L_LINE_COUNTER +1
+                    }
+                  Else
+                    {
+                      Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3200h+0V",
+                        impDESC:DESCRIPTION[L_START_PRINT,Len(Trun(impDESC:DESCRIPTION))])
+                    }
+                  L_LOOP = Len(Trun(impDESC:DESCRIPTION))
+                }
+              L_LOOP = L_LOOP + 1
+          }
+      }
+    Else --only 30 c in impdesc therefore, no need to break - will just print
+      {
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3200h+0V",
+                              impDESC:DESCRIPTION,"<NL>")
+      }
+  Writefile(L_FILE_NAME,"%s","<NL>")
+  L_LINE_COUNTER =L_LINE_COUNTER +1
+
+  L_LINE_COUNTER =L_LINE_COUNTER +2
+
+  Next impDESC
+}
+
+
+  If L_LINE_COUNTER + 20 < L_MAX_LINE Then
+    {
+      Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a60h-60V<033>*c5800h5v0P",
+                            "<NL>","<NL>")           --Horizontal line
+      L_LINE_COUNTER =L_LINE_COUNTER +2
+    }
+  Else
+    {
+      Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h7000V",
+                      L_COPYRIGHT_6,L_ARIAL_9," 1998 MSO, Inc.",L_ARIAL_BOLD_9)
+
+      Writefile(L_FILE_NAME,"%s%s%s%n%s",L_ARIAL_9,"<033>&a5000h7000V","Page ",
+                        L_PAGE_NUMBER,"<NL>")
+
+      Writefile(L_FILE_NAME,"%s","<FF>")
+      L_PAGE_NUMBER = L_PAGE_NUMBER +1
+    }
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                      "2.","<033>&a250h+0V","ADDITIONAL POLICY PROVISIONS","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+0V",
+                      "A.","<033>&a420h+0V","Covered Causes Of Loss","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+0V",
+                      "<033>&a+0h+20V",L_BULLET_6,"<033>&a+0h-20V",
+                      L_ARIAL_BOLD_9,"<033>&a590h+0V",
+                      "Option A","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "Any fortuitous direct physical loss not otherwise ",
+                      "excluded by this policy.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+20V",
+                      L_BULLET_6,"<033>&a+0h-20V",L_ARIAL_BOLD_9,"<033>&a590h+0V",
+                      "Option B","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "This option extends the causes of loss described ",
+                      "in the applicable coverage form to include the following:",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_8,"<033>&a590h+20V",
+                      L_BULLET_6,"<033>&a+0h-20V",L_ARIAL_9,"<033>&a760h+0V",
+                      "Collapse of Bridges and Culverts.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_8,"<033>&a590h+20V",
+                      L_BULLET_6,"<033>&a+0h-20V",L_ARIAL_9,"<033>&a760h+0V",
+                      "Collision, Derailment, or Overturning of Vehicles.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_8,"<033>&a590h+20V",
+                      L_BULLET_6,"<033>&a+0h-20V",L_ARIAL_9,"<033>&a760h+0V",
+                      "Earthquake.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_8,"<033>&a590h+20V",
+                      L_BULLET_6,"<033>&a+0h-20V",L_ARIAL_9,
+                      "<033>&a760h+0V","Flooding and Other Water Damage.",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+60V",
+                      "B.","<033>&a420h+0V","Section I D",
+                      "<033>&a+25h-30V<033>*c80h3v0P","<033>&a+125h+30V",
+                      "Losses Not Insured","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "Only exclusion 5. and items A, B, C, F, and G. of ",
+                      "exclusion 11. apply. No other exclusions apply to ",
+                      "property covered","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "by this endorsement (MPL 16).","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+60V",
+                      "C.","<033>&a420h+0V","Section I E",
+                      "<033>&a+25h-30V<033>*c80h3v0P","<033>&a+125h+30V",
+                      "Conditions","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+0V",
+                      "1.",L_ARIAL_BOLD_9,"<033>&a590h+0V",
+                      "Deductible","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "There is no deductible applicable to property covered ",
+                      "by this endorsement, unless a specific deductible is",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "selected and shown in this endorsement. ","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+30V",
+                      "2.",L_ARIAL_BOLD_9,"<033>&a590h+0V",
+                      "Recovery","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "Loss is not recoverable under this policy if paid by ",
+                      "others. The insurance ceases on a specific article if ",
+                      L_ARIAL_ITALIC_9,"we","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "pay for total loss on the article. ",L_ARIAL_ITALIC_9,
+                      "You ",L_ARIAL_9,"may receive return of any unearned ",
+                      "premium or apply the amount to ",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                      "replacement insurance.",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+60V",
+                      "D.","<033>&a420h+0V","Optional Endorsement",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+40V",
+                      "Replacement Coverage","<033>&a+25h-30V<033>*c80h3v0P",
+                      "<033>&a+125h+30V","MPL 49",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+40V",
+                      "If endorsements MPL 27 ",L_ARIAL_BOLD_9,"and ",L_ARIAL_9,
+                      "MPL 49 are listed in the Declarations, property covered ",
+                      "under this endorsement",
+                      "<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_9,"<033>&a420h+0V",
+                      "(MPL 16) is subject to the replacement coverage ",
+                      "provisions of endorsement MPL 49.","<NL>")
+L_LINE_COUNTER =L_LINE_COUNTER +1
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a420h7000V",
+                      L_COPYRIGHT_8,L_ARIAL_9," 1998 MSO, Inc.",L_ARIAL_BOLD_9)
+If L_PAGE_NUMBER > 1 Then
+  {
+    Writefile(L_FILE_NAME,"%s%s%s%n%s",L_ARIAL_9,"<033>&a5000h7000V","Page ",
+                           L_PAGE_NUMBER,"<NL>")
+  }
+    }
+  Next SFPEND
+}
+
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

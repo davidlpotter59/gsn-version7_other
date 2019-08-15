@@ -1,0 +1,258 @@
+%%
+Screen
+        Name = "utilmn001" ;
+        Type = "detail" ;
+        Padcharacter = Space ;
+        Highlight = Underscore ;
+        Screensize = "dynamic" ;
+        Windowtitle = "%a     %s Utilities - Ver. 7.00      %m";
+        Domain = "sfsmenu" ;
+--        resizeable = yes ;
+        iconline = 0 ;
+
+        global string g_lib_1[10] ,
+                      g_company_id[10] ;
+
+        local array[20] of unsigned ascii number l_view[1] ;
+
+        local unsigned ascii number l_abort_program[1] ;
+
+        local string l_continue_1[3] ,
+                     l_continue[2],
+                     l_username[15],
+                     l_system_id[15];
+
+        Include "stdkeys7.inc"
+
+Style Definition
+
+        Include "styles.inc"
+
+Functions
+
+        "redisplay" display/noreturn "utilmn001" ;
+        Include "stdfunc7a.inc"
+
+Menu Definition
+
+        Include "stdmenu7.inc"
+
+}
+
+Toolbar Definition
+
+        Include "stdtoolbar7.inc"
+}
+
+screen entry
+access sfsdefault, set sfsdefault:sfs_code = "SFS", generic
+
+if g_company_id = "" then
+   begin
+   g_company_id = sfsdefault:company_id
+   end
+
+l_username      = username/spacefill
+l_system_id     = "ars"/spacefill
+l_abort_program = 0
+
+access sfssecurity_ar, set sfssecurity_ar:company_id = g_company_id,
+                           sfssecurity_ar:user_id    = l_username,
+                           sfssecurity_ar:system_id  = l_system_id, generic
+
+screen
+{
+%%
+                                                        _______________
+*------------------------------------------------------------------------------*
+|                    Cancellation Notices:             _                       |
+|                    Reinstatement Notices:            _                       |
+|                    Registered Mail Book:             _                       |
+|                    Suspense:                         _                       |
+|                    Recommendation Letters:           _                       |
+|                    Inspections:                      _                       |
+|                    1099's:                           _                       |
+|                    Decline Quotes:                   _                       |
+|                    Automatic Renewals:               _                       |
+|                    Set Policy to Manually Renew:     _                       |
+|                    Set Advance Fail:                 _                       |
+|                    Re-send to Connective:            _                       |
+|                    Re-send to Connective - By Agent: _                       |
+|                    Just One More Report:             _                       |
+|                    Policy Inspection Update:         _                       |
+|                    No Cash Indicator:                _                       |
+*------------------------------------------------------------------------------*
+
+%%
+
+components
+
+fields
+        function/noecho/showasguidetext ;
+301     l_view[1]/checkbox/values="0,1"
+        if l_view[1] = 1 then
+            begin
+            display modal screen "sfsmt301"
+            abort()
+            end  ;
+301     begin
+            l_view[1] = 0
+        end
+        l_view[1]/displayonly/checkbox/values="0,1" ;
+401     l_view[2]/checkbox/values="0,1"
+        if l_view[2] = 1 then
+            begin
+            display modal screen "sfsmt302"
+            abort()
+            end  ;
+401     begin
+            l_view[2] = 0
+        end
+        l_view[2]/displayonly/checkbox/values="0,1" ;
+501     l_view[3]/checkbox/values="0,1"
+        if l_view[3] = 1 then
+            begin
+            display modal screen "sfsmt303"
+            abort()
+            end  ;
+501     begin
+            l_view[3] = 0
+        end
+        l_view[3]/displayonly/checkbox/values="0,1" ;
+601     l_view[4]/checkbox/values="0,1"
+        if l_view[4] = 1 then
+            begin
+            display modal screen "sfsmt304"
+            abort()
+            end  ;
+601     begin
+            l_view[4] = 0
+        end
+        l_view[4]/displayonly/checkbox/values="0,1" ;
+701     l_view[5]/checkbox/values="0,1"
+        if l_view[5] = 1 then
+            begin
+            display modal screen "sfsmt305"
+            abort()
+            end  ;
+701     begin
+            l_view[5] = 0
+        end
+        l_view[5]/displayonly/checkbox/values="0,1" ;
+801     l_view[6]/checkbox/values="0,1"
+        if l_view[6] = 1 then
+            begin
+            display modal screen "sfpmt007"
+            abort()
+            end  ;
+801     begin
+            l_view[6] = 0
+        end
+        l_view[6]/displayonly/checkbox/values="0,1" ;
+901     l_view[7]/checkbox/values="0,1"
+        if l_view[7] = 1 then
+            begin
+            display modal screen "sfsmt307"
+            abort()
+            end  ;
+901     begin
+            l_view[7] = 0
+        end
+        l_view[7]/displayonly/checkbox/values="0,1" ;
+1001    l_view[8]/checkbox/values="0,1"
+        if l_view[8] = 1 then
+            begin
+            display modal screen "sfqmt008"
+            abort()
+            end  ;
+1001    begin
+            l_view[8] = 0
+        end
+        l_view[8]/displayonly/checkbox/values="0,1" ;
+1101    l_view[9]/checkbox/values="0,1"
+        if l_view[9] = 1 then
+            begin
+            display modal screen "sfpmt010"
+            abort()
+            end  ;
+1101    begin
+            l_view[9] = 0
+        end
+        l_view[9]/displayonly/checkbox/values="0,1" ;
+1201    l_view[10]/checkbox/values="0,1"
+        if l_view[10] = 1 then
+            begin
+            display modal screen "sfpin01a"
+            abort()
+            end  ;
+1201    begin
+            l_view[10] = 0
+        end
+        l_view[10]/displayonly/checkbox/values="0,1" ;
+1301    l_view[11]/checkbox/values="0,1"
+        if l_view[11] = 1 then
+            begin
+            display modal screen "sfpmt013"
+            abort()
+            end  ;
+1301    begin
+            l_view[11] = 0
+        end
+        l_view[11]/displayonly/checkbox/values="0,1" ;
+1401    l_view[12]/checkbox/values="0,1"
+        if l_view[12] = 1 then
+            begin
+            display modal screen "sfpmt014"
+            abort()
+            end  ;
+1401    begin
+            l_view[12] = 0
+        end
+        l_view[12]/displayonly/checkbox/values="0,1" ;
+1501    l_view[13]/checkbox/values="0,1"
+        if l_view[13] = 1 then
+            begin
+            display modal screen "sfpmt014a"
+            abort()
+            end  ;
+1501    begin
+            l_view[13] = 0
+        end
+        l_view[13]/displayonly/checkbox/values="0,1" ;
+1601    l_view[14]/checkbox/values="0,1"
+        if l_view[14] = 1 then
+            begin
+            display modal screen "sfsmt316"
+            abort()
+            end  ;
+1601    begin
+            l_view[14] = 0
+        end
+        l_view[14]/displayonly/checkbox/values="0,1" ;
+1701    l_view[15]/checkbox/values="0,1"
+        if l_view[15] = 1 then
+            begin
+            display modal screen "sfpmt012"
+            abort()
+            end  ;
+1701    begin
+            l_view[15] = 0
+        end
+        l_view[15]/displayonly/checkbox/values="0,1" ;
+1801    l_view[16]/checkbox/values="0,1"
+        if sfssecurity_ar:no_cash_id = 0 and
+           l_view[16] = 1 then
+            error "You don't have access to No Cash Indicator"
+        if l_view[16] = 1 then
+            begin
+            display modal screen "sfpmt017"
+            abort()
+            end  ;
+1801    begin
+            l_view[16] = 0
+        end
+        l_view[16]/displayonly/checkbox/values="0,1" ;
+
+}
+
+End

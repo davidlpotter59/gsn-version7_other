@@ -1,0 +1,295 @@
+%%
+/*
+Date Written: April 1, 2005
+
+Name: fos176_092010.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+06/16/2006            JLB             New form fos176_092010
+
+===========================
+*/
+
+Program
+  Name = "fos176_092010";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[16] = "fos176_092010.cq";
+ String l_company_id[10];
+ Unsigned ascii number L_PAGE_COUNTER,
+                       l_max_lines=60,
+                       l_line_counter;
+ Unsigned Ascii Number L_YEAR[4];
+ Unsigned Ascii number L_LINE_OF_BUSINESS[4];
+ Unsigned ascii number l_found[1];
+ Unsigned Ascii Number L_ITEM_COUNTER;
+ Unsigned Ascii Number L_STATE[2]=0;
+ Unsigned Ascii Number L_LOOP;
+ wdate L_EFF_DATE;
+
+   Include "csfonts.inc"
+   Include "swsut100.var"
+   Include "swsut200.var"
+   Include "center2.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+Access SFPNAME,
+   Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access bopgeneral,
+   Set bopgeneral:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       bopgeneral:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       bopgeneral:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access sfpend_alias,
+   Set sfpend_alias:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       sfpend_alias:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       sfpend_alias:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+   Include "swsut100.inc"
+   I_CODE = "FOS176"
+   Include "swsut200.inc"
+
+l_page_counter = 1
+
+While sfpend_alias:POLICY_NO    = SFPPRINT1:POLICY_NO And
+      sfpend_alias:POL_YEAR     = SFPPRINT1:POL_YEAR And
+      sfpend_alias:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+  {
+    If sfpend_alias:CODE = I_CODE Then
+      {
+        l_state            = bopgeneral:state
+        L_COMPANY_ID       = sfpname:COMPANY_ID
+        L_LINE_OF_BUSINESS = bopgeneral:LINE_OF_BUSINESS
+
+        Access SFSOPTEND,
+           Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+               SFSOPTEND:STATE            = L_STATE,
+               SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+               SFSOPTEND:CODE             = I_CODE, generic
+
+         While SFSOPTEND:COMPANY_ID       = L_COMPANY_ID and
+               SFSOPTEND:STATE            = L_STATE and
+               SFSOPTEND:LINE_OF_BUSINESS = l_LINE_OF_BUSINESS and
+               SFSOPTEND:CODE             = I_CODE
+
+           {  --start of sfsoptend check
+             If (sfpname:eff_date >= sfsoptend:eff_date and
+                (sfpname:eff_date < sfsoptend:exp_date or
+                 sfsoptend:exp_date = 0)) then
+               {
+                 l_eff_date = sfsoptend:eff_date
+               }
+             next sfsoptend
+           }
+
+        Access SFSOPTEND,
+           Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+               SFSOPTEND:STATE            = L_STATE,
+               SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+               SFSOPTEND:CODE             = I_CODE,
+               SFSOPTEND:EFF_DATE         = L_EFF_DATE, exact
+
+        If sfsoptend:edition <> 0 then
+          {
+             Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+             Writefile(L_FILE_NAME,"%s","<033>&a420h7080V")
+             Writefile(L_FILE_NAME,"%s","Ed. ")
+             Writefile(L_FILE_NAME,"%n",sfsoptend:edition)
+          }
+
+        L_STRING = "FARMERS MUTUAL INSURANCE COMPANY"
+        L_FONT = L_ARIAL_bold_12
+        L_PITCH_HALF = 6
+        L_PITCH_FULL = 12
+        L_VERTICAL_POS = "120"
+        L_HORIZONTAL_POS = "2880"
+        Include "center3.pro"
+
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+        Writefile(L_FILE_NAME,"%s","<033>&a4700h+120V")
+        Writefile(L_FILE_NAME,"%s",Trun(SFSOPTEND:FORM_PRINT))
+        Writefile(L_FILE_NAME,"%s"," ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+        Writefile(L_FILE_NAME,"%s",SFSOPTEND:EDITION_PRINT)
+
+        L_STRING = "Supplemental Extended Reporting Period Endorsement"
+        L_FONT = L_ARIAL_bold
+        L_PITCH_HALF = 6
+        L_PITCH_FULL = 12
+        L_VERTICAL_POS = "+130"
+        L_HORIZONTAL_POS = "2880"
+        Include "center3.pro"
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+40V<033>*c5500h8v0P")   ----horizontal line
+
+        L_STRING = "This endorsement changes the policy. Please read it carefully."
+        L_FONT = L_ARIAL_9
+        L_PITCH_HALF = 4.5
+        L_PITCH_FULL = 9
+        L_VERTICAL_POS = "+120"
+        L_HORIZONTAL_POS = "2880"
+        Include "center3.pro"
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","This endorsement modifies insurance provided under the following:  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+150V")
+        Writefile(L_FILE_NAME,"%s","EMPLOYMENT PRACTICES LIABILITY INSURANCE COVERAGE  ")
+
+/*        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+240V")
+        Writefile(L_FILE_NAME,"%s","POLICY NUMBER: ")
+        Writefile(L_FILE_NAME,"%n",sfpprint1:policy_no)
+*/
+        L_STRING = "SCHEDULE"
+        L_FONT = L_ARIAL_bold_9
+        L_PITCH_HALF = 4.5
+        L_PITCH_FULL = 9
+        L_VERTICAL_POS = "+360"
+        L_HORIZONTAL_POS = "2880"
+        Include "center3.pro"
+
+        Writefile(L_FILE_NAME,"%s","<033>&a90h+80V<033>*c5405h8v0P")   --top horizontal line
+        Writefile(L_FILE_NAME,"%s",L_PUSH)
+        Writefile(L_FILE_NAME,"%s","<033>&a90h+0V<033>*c4a150b0P") --left vertical line
+        Writefile(L_FILE_NAME,"%s","<033>&a5500h+0V<033>*c4a153b0P")  --right vertical
+        Writefile(L_FILE_NAME,"%s","<033>&a90h+360V<033>*c5405h8v0P")   --bottom horizontal line
+
+Access SFPepl,
+   Set SFPepl:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPepl:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPepl:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+        Writefile(L_FILE_NAME,"%s",L_Pop)
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+        Writefile(L_FILE_NAME,"%s","Supplemental Extended Reporting Period Additional Premium: ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","$ ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s",str(sfpepl:extend_period_premium,"ZZ,ZZZ"))
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","<033>&a2900h+20V<033>*c1000h6v0P")   --horizontal line
+
+Access SFPmaster,
+   Set SFPmaster:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPmaster:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPmaster:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+        Writefile(L_FILE_NAME,"%s","Supplemental Extended Reporting Period Effective Date: ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%d",sfpmaster:trans_eff)
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_8)
+        Writefile(L_FILE_NAME,"%s","<033>&a2580h+20V<033>*c1000h6v0P")   --horizontal line
+        Writefile(L_FILE_NAME,"%s","<033>&a3640h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","at 12:01 A.M. Standard Time  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+240V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Pursuant to ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","your ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","rights set forth in CONDITIONS, Clause F., Paragraph 2.b. of the Employment Practices Liability Insurance Coverage,  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s","the following provision applies as of the Supplemental Extended Reporting Period Effective Date shown in the above Schedule:  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+        Writefile(L_FILE_NAME,"%s","1.  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a300h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","The ")
+        Writefile(L_FILE_NAME,"%s",l_arial_italic_9)
+        Writefile(L_FILE_NAME,"%s","named insured ")
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","shall have a period of ")
+        Writefile(L_FILE_NAME,"%s",l_underline_start)
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","one")
+        Writefile(L_FILE_NAME,"%s",l_underline_end)
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s"," (1) year following the Supplemental Extended Reporting Period Effective Date (shown  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a300h+120V")
+        Writefile(L_FILE_NAME,"%s","in the above Schedule) in which to give written notice to ")
+        Writefile(L_FILE_NAME,"%s",l_arial_italic_9)
+        Writefile(L_FILE_NAME,"%s","us ")
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","of ")
+        Writefile(L_FILE_NAME,"%s",l_arial_italic_9)
+        Writefile(L_FILE_NAME,"%s","claims ")
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","first made or ")
+        Writefile(L_FILE_NAME,"%s",l_arial_italic_9)
+        Writefile(L_FILE_NAME,"%s","suits ")
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","first brought against the ")
+        Writefile(L_FILE_NAME,"%s",l_arial_italic_9)
+        Writefile(L_FILE_NAME,"%s","insureds ")
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","during said ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a300h+120V")
+        Writefile(L_FILE_NAME,"%s",l_underline_start)
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","one")
+        Writefile(L_FILE_NAME,"%s",l_underline_end)
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s"," (1) year period for any ")
+        Writefile(L_FILE_NAME,"%s",l_arial_italic_9)
+        Writefile(L_FILE_NAME,"%s","wrongful employment ")
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","acts occurring on or prior to the Supplemental Extended Reporting Period Effective  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a300h+120V")
+        Writefile(L_FILE_NAME,"%s","Date and otherwise covered by this EPL Coverage.  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+160V")
+        Writefile(L_FILE_NAME,"%s",l_arial_bold_9)
+        Writefile(L_FILE_NAME,"%s","2.")
+        Writefile(L_FILE_NAME,"%s","<033>&a300h+0V")
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","Notwithstanding any other provision of this EPL Coverage, the Supplemental Extended Reporting Period shall not provide coverage  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a300h+120V")
+        Writefile(L_FILE_NAME,"%s","for any ")
+        Writefile(L_FILE_NAME,"%s",l_arial_italic_9)
+        Writefile(L_FILE_NAME,"%s","wrongful employment acts ")
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","occurring after the Supplemental Extended Reporting Period Effective Date.  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+640V")
+        Writefile(L_FILE_NAME,"%s",l_arial_9)
+        Writefile(L_FILE_NAME,"%s","ALL OTHER TERMS, CONDITIONS AND EXCLUSIONS REMAIN UNCHANGED.  ")
+
+        L_STRING = "Includes copyrighted material of MSO, Inc. with its permission."
+        L_FONT = L_ARIAL_7
+        L_PITCH_HALF = 3.5
+        L_PITCH_FULL = 7
+        L_VERTICAL_POS = "7200"
+        L_HORIZONTAL_POS = "2880"
+        Include "center3.pro"
+
+        Writefile(L_FILE_NAME,"%s","<FF>")
+    }
+  Next sfpend_alias
+}
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

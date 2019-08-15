@@ -1,0 +1,885 @@
+%%                                 
+/*
+Date Written: August 30, 2006
+
+Name: il0995_052004.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+04/24/2007             JLB                 New form
+==============================================================
+*/
+
+Program
+  Name = "il0995_052004";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[16] = "il0995_052004.cq";
+ String L_COPY_NAME[20] ;
+ Unsigned ascii number l_max_lines;
+ Unsigned ascii number l_page_counter;
+ Unsigned Ascii Number L_YEAR[4];
+ Unsigned Ascii number L_LINE_OF_BUSINESS[4];
+ Unsigned ascii number l_found[1];
+ Unsigned Ascii Number L_ITEM_COUNTER;
+ Unsigned Ascii Number L_STATE[2]=0;
+ Unsigned Ascii Number L_LOOP;
+ wdate L_EFF_DATE;
+ Unsigned Ascii Number L_LINE_COUNTER;
+ Unsigned Ascii Number L_PAGE_NUMBER;
+
+   Include "csfonts.inc"
+   Include "swsut100.var"
+   Include "swsut200.var"
+   Include "swsut300.var"
+   Include "center2.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+Access SFPNAME,
+   Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access cppendorse,
+   Set cppendorse:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       cppendorse:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       cppendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access cppcrime1,
+   Set cppcrime1:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       cppcrime1:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       cppcrime1:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+   Include "swsut100.inc"
+   I_CODE = "IL0995"
+   Include "swsut200.inc"
+   L_page_counter=1
+
+While cppendorse:POLICY_NO    = SFPPRINT1:POLICY_NO And
+      cppendorse:POL_YEAR     = SFPPRINT1:POL_YEAR And
+      cppendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+{
+  If cppendorse:code = I_Code then
+    {
+      L_STATE            = cppcrime1:STATE
+      L_COMPANY_ID       = sfpname:COMPANY_id
+      If sfpname:company_id = "LEBINS" then
+        L_LINE_OF_BUSINESS = 008
+      else
+        L_LINE_OF_BUSINESS = sfpname:line_of_business
+
+      Access SFSOPTEND,
+         Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+             SFSOPTEND:STATE            = L_STATE,
+             SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+             SFSOPTEND:CODE             = I_CODE, generic
+
+       While SFSOPTEND:COMPANY_ID       = L_COMPANY_ID and
+             SFSOPTEND:STATE            = L_STATE and
+             SFSOPTEND:LINE_OF_BUSINESS = l_LINE_OF_BUSINESS and
+             SFSOPTEND:CODE             = I_CODE
+
+         {  --start of sfsoptend check
+           If (sfpname:eff_date >= sfsoptend:eff_date and
+              (sfpname:eff_date < sfsoptend:exp_date or
+               sfsoptend:exp_date = 0)) then
+             {
+               l_eff_date = sfsoptend:eff_date
+             }
+           next sfsoptend
+         }
+
+      Access SFSOPTEND,
+         Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+             SFSOPTEND:STATE            = L_STATE,
+             SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+             SFSOPTEND:CODE             = I_CODE,
+             SFSOPTEND:EFF_DATE         = L_EFF_DATE, generic
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","POLICY NUMBER: ")
+      Writefile(L_FILE_NAME,"%n",sfpprint1:policy_no)
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+      Writefile(L_FILE_NAME,"%s","<033>&a4740h+0V")
+      Writefile(L_FILE_NAME,"%s",Trun(SFSOPTEND:FORM_PRINT))
+      Writefile(L_FILE_NAME,"%s"," ")
+      Writefile(L_FILE_NAME,"%s",SFSOPTEND:EDITION_PRINT)
+
+      L_STRING = "THIS ENDORSEMENT CHANGES THE POLICY.  PLEASE READ IT CAREFULLY."
+      L_FONT = L_ARIAL_bold_12
+      L_PITCH_HALF = 6
+      L_PITCH_FULL = 12
+      L_VERTICAL_POS = "+300"
+      L_HORIZONTAL_POS = "2800"
+      Include "center3.pro"
+
+      L_STRING = "CONDITIONAL EXCLUSION OF TERRORISM (RELATING"
+      L_FONT = L_ARIAL_bold_18
+      L_PITCH_HALF = 9
+      L_PITCH_FULL = 18
+      L_VERTICAL_POS = "+300"
+      L_HORIZONTAL_POS = "2800"
+      Include "center3.pro"
+
+      L_STRING = "TO DISPOSITION OF FEDERAL TERRORISM RISK"
+      L_FONT = L_ARIAL_bold_18
+      L_PITCH_HALF = 9
+      L_PITCH_FULL = 18
+      L_VERTICAL_POS = "+170"
+      L_HORIZONTAL_POS = "2800"
+      Include "center3.pro"
+
+      L_STRING = "INSURANCE ACT OF 2002)"
+      L_FONT = L_ARIAL_bold_18
+      L_PITCH_HALF = 9
+      L_PITCH_FULL = 18
+      L_VERTICAL_POS = "+170"
+      L_HORIZONTAL_POS = "2800"
+      Include "center3.pro"
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+300V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      Writefile(L_FILE_NAME,"%s","This endorsement modifies insurance provided under the following:")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+      Writefile(L_FILE_NAME,"%s","BOILER AND MACHINERY COVERAGE PART")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","COMMERCIAL CRIME COVERAGE FORM")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","COMMERCIAL INLAND MARINE COVERAGE PART")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","COMMERCIAL PROPERTY COVERAGE PART")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","EQUIPMENT BREAKDOWN PROTECTION COVERAGE FORM")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","FARM COVERAGE PART")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","GOVERNMENT CRIME COVERAGE FORM")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","STANDARD PROPERTY POLICY")
+
+      L_STRING = "SCHEDULE*"
+      L_FONT = L_ARIAL_bold
+      L_PITCH_HALF = 5
+      L_PITCH_FULL = 10
+      L_VERTICAL_POS = "+240"
+      L_HORIZONTAL_POS = "2800"
+      Include "center3.pro"
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+180V")
+      Writefile(L_FILE_NAME,"%s","The ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","Exception Covering Certain Fire Losses ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","(Paragraph ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","D")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",") applies to property located in the following state(s),")
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+120V")
+      Writefile(L_FILE_NAME,"%s","if covered under the indicated Coverage From, Coverage Part or Policy:")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+140V<033>*c5200h8v0P") --top horizontal line
+      Writefile(L_FILE_NAME,"%s",L_PUSH)
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+0V<033>*c4a270b0P")   --left vertical li
+      Writefile(L_FILE_NAME,"%s","<033>&a2800h+0V<033>*c4a203b0P")   --left vertical li
+      Writefile(L_FILE_NAME,"%s","<033>&a5400h+0V<033>*c4a270b0P")   --right vertical
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+240V<033>*c5200h8v0P") --bottom horizontal line
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+240V<033>*c5200h8v0P") --bottom horizontal line
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+160V<033>*c5200h8v0P") --bottom horizontal line
+      Writefile(L_FILE_NAME,"%s",L_Pop)
+
+      Writefile(L_FILE_NAME,"%s","<033>&a240h+220V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","States(s) ")
+      Writefile(L_FILE_NAME,"%s","<033>&a2850h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","Coverage Form, Coverage Part or Policy ")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a240h+180V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",cppendorse:state_name)
+
+      Writefile(L_FILE_NAME,"%s","<033>&a240h+220V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","Information required to complete this Schedule, if not shown above, will be shown in the Declarations.")
+
+      Writefile(L_FILE_NAME,"%s",L_push)
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+280V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","A.")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","Applicability Of The Provisions Of This En-")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","dorsement")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","1.")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","The provisions of this endorsement will")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","become applicable commencing on the date")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","when any one or more of the following first")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","occurs:")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","a.")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","The federal Terrorism Risk Insurance ")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'Program ("Program"), established by the')
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",'Terrorism Risk Insurance Act of 2002,')
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s","has terminated with respect to the type")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s","of insurance provided under this Cover-")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s","age Form, Coverage Part or Policy; or")
+
+-------second column
+
+      Writefile(L_FILE_NAME,"%s",L_pop)
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+300V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","b.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","A renewal, extension or continuation of" )
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'the Program has become effective with-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'out a requirement to make terrorism')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","coverage available to you and with revi-")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","sions that:")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","(1)")
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","Increase our statutory percentage")
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","deductible under the Program for ter-")
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","rorism losses.  (That deductible de-")
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","termines the amount of all certified ")
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","terrorism losses, we must pay in a")
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","calendar year, before the federal gov-")
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","ernment shares in subsequent pay-")
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","ment of certified terrorism losses.); or")
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+      Writefile(L_FILE_NAME,"%s","<033>&a200h7200V")
+      Writefile(L_FILE_NAME,"%s",Trun(sfsoptend:form_print))
+      Writefile(L_FILE_NAME,"%s"," ")
+      Writefile(L_FILE_NAME,"%s",sfsoptend:edition_print)
+
+      Writefile(L_FILE_NAME,"%s","<033>&a2250h7200V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",L_copyright_10)
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s"," ISO Properties, Inc., 2004")
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_Bold)
+
+      Writefile(L_FILE_NAME,"%s","<033>&a5000h7200V")
+      Writefile(L_FILE_NAME,"%s","Page ")
+      Writefile(L_FILE_NAME,"%n",L_page_counter)
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      L_page_counter=L_page_counter+1
+
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h7137V<033>*c53h6v0P") --top horizontal line
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h+0V<033>*c4a27b0P")  --left vertical line
+      Writefile(L_FILE_NAME,"%s","<033>&a5553h+0V<033>*c4a29b0P")  --right vertical line
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h7200V<033>*c57h6v0P")  --bottom horizontal line
+
+      Writefile(L_FILE_NAME,"%s","<FF>")
+
+--------Page 2----------
+
+      Writefile(L_FILE_NAME,"%s",L_push)
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","(2)")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a1000h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","Decrease the federal government's")
+      Writefile(L_FILE_NAME,"%s","<033>&a1000h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","statutory percentage share in poten-")
+      Writefile(L_FILE_NAME,"%s","<033>&a1000h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","tial terrorism losses above such de-")
+      Writefile(L_FILE_NAME,"%s","<033>&a1000h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","ductible; or")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","(3)")
+      Writefile(L_FILE_NAME,"%s","<033>&a1000h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","Redefine terrorism or make insurance")
+      Writefile(L_FILE_NAME,"%s","<033>&a1000h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","coverage for terrorism subject to pro-")
+      Writefile(L_FILE_NAME,"%s","<033>&a1000h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","visions or requirements that differ")
+      Writefile(L_FILE_NAME,"%s","<033>&a1000h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","from those that apply to other types")
+      Writefile(L_FILE_NAME,"%s","<033>&a1000h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","of events or occurences under this")
+      Writefile(L_FILE_NAME,"%s","<033>&a1000h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","policy.")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","The Program is scheduled to terminate at")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","the end of December 31, 2005 unless re-")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","newed, extended or otherwise continued by")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","the federal government.")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","2.")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","If the provisions of this endorsement be-")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'come applicable, such provisions:')
+
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","a.")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+      Writefile(L_FILE_NAME,"%s",'Supersede any terrorism endorsement')
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s","already endorsed to this policy that ad-")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",'dresses "certified acts of terrorism"')
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",'and/or "other acts of terrorism", but only')
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s","with respect to loss or damage from an")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s","incident(s) of terrorism (however de-")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s","fined) that occurs on or after the date")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s","when the provisions of this endorsement")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s","become applicable; and")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","b.")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+      Writefile(L_FILE_NAME,"%s",'Remain applicable unless we notify you')
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s","of changes in these provisions, in re-")
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",'sponse to federal law.')
+
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","3.")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","If the provisions of this endorsement do")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'NOT become applicable, any terrorism en-')
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'dorsement already endorsed to this policy,')
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'that addresses "certified acts of terrorism"')
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'and/or "other acts of terrorism", will con-')
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'tinue in effect unless we notify you of')
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'changes to that endorsement in response')
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'to federal law.')
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","B.")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","The following definition is added and applies under")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","this endorsement wherever the term terrorism is")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","enclosed in quotation marks.")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+150V")
+      Writefile(L_FILE_NAME,"%s",'"Terrorism" means activities against persons, or-')
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","ganizations or property of any nature:")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","1.")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","That involve the following or preparation for the")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s","following:")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","a.")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+      Writefile(L_FILE_NAME,"%s",'Use or threat of force or violence; or')
+
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","b.")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+      Writefile(L_FILE_NAME,"%s",'Commission or threat of a dangerous act; or')
+
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","c.")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+      Writefile(L_FILE_NAME,"%s",'Commission or threat of an act that inter-')
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",'feres with or disrupts an electronic, com-')
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",'munication, information, or mechanical sys-')
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",'tem; and')
+
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","2.")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","When one or both of the following applies:")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","a.")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+      Writefile(L_FILE_NAME,"%s",'The effect is to intimidate or coerce a gov-')
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",'ernment or the civilian population or any')
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",'segment thereof, or to disrupt any segment')
+      Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+      Writefile(L_FILE_NAME,"%s",'of the economy; or')
+
+-------second column
+
+      Writefile(L_FILE_NAME,"%s",L_pop)
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","b.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","It appears that the intent is to intimidate or" )
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s",'coerce a government, or to further political,')
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s",'ideological, religious, social or economic ob-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s","jectives or to express (or express opposition")
+      Writefile(L_FILE_NAME,"%s","<033>&a3600h+120V")
+      Writefile(L_FILE_NAME,"%s","to) a philosophy or ideology.")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a3000h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","C.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","The following exclusion is added:")
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","EXCLUSION OF TERRORISM")
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","We will not pay for loss or damage caused directly")
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+120V")
+      Writefile(L_FILE_NAME,"%s",'or indirectly by "terrorism", including action in hin-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+120V")
+      Writefile(L_FILE_NAME,"%s","dering or defending against an actual or expected")
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+120V")
+      Writefile(L_FILE_NAME,"%s",'incident of "terrorism".  Such loss or damage is ex-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+120V")
+      Writefile(L_FILE_NAME,"%s","cluded regardless of any other cause or event that")
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+120V")
+      Writefile(L_FILE_NAME,"%s","contributes concurrently or in any sequence to the")
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+120V")
+      Writefile(L_FILE_NAME,"%s","loss.  ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","But this exclusion applies only when one")
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","or more of the following are attributed to an in-")
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s",'cident of "terrorism":')
+
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","1.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'The "terrorism" is carried out by means of the')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'dispersal or application of radioactive material,')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'or through the use of a nuclear weapon or de-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s","vice that involves or produces a nuclear reac-")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s","tion, nuclear radiation or radioactive contamina-")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s","tion; or")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","2.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'Radioactive material is released, and it appears')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'that one purpose of the "terrorism" was to re-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'lease such material; or')
+
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","3.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'The "terrorism" is carried out by means of the')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'dispersal or application of pathogenic or poi-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'sonous biological or chemical materials; or')
+
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","4.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'Pathogenic or poisonous biological or chemical')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'materials are released, and it appears that one')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'purpose of the "terrorism" was to release such')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s","materials; or")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","5.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'The total of insured damage to all types of')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'property in the United States, its territories and')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'possessions, Puerto Rico and Canada exceeds')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s","$25,000,000.  In determining whether the")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'$25,000,000 threshold is exceeded, we will in-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'clude all insured damage sustained by property')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'of all persons and entities affected by the "ter-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'rorism" and business interruption losses sus-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'tained by owners or occupants of the damaged')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'property.  For the purpose of this provision, in-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'sured damage means damage that is covered')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'by any insurance plus damage that would be')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'covered by any insurance but for the applica-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'tion of any terrorism exclusions.  Multiple inci-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'dents of "terrorism" which occur within a 72-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'hour period and appear to be carried out in')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'concert or to have a related purpose or com-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'mon leadership will be deemed to be one inci-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'dent, for the purpose of determining whether')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'the threshold is exceeded.')
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+      Writefile(L_FILE_NAME,"%s","<033>&a4700h7200V")
+      Writefile(L_FILE_NAME,"%s",Trun(sfsoptend:form_print))
+      Writefile(L_FILE_NAME,"%s"," ")
+      Writefile(L_FILE_NAME,"%s",sfsoptend:edition_print)
+
+      Writefile(L_FILE_NAME,"%s","<033>&a2250h7200V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",L_copyright_10)
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s"," ISO Properties, Inc., 2004")
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_Bold)
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h7200V")
+      Writefile(L_FILE_NAME,"%s","Page ")
+      Writefile(L_FILE_NAME,"%n",L_page_counter)
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      L_page_counter=L_page_counter+1
+
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h7137V<033>*c53h6v0P") --top horizontal line
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h+0V<033>*c4a27b0P")  --left vertical line
+      Writefile(L_FILE_NAME,"%s","<033>&a5553h+0V<033>*c4a29b0P")  --right vertical line
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h7200V<033>*c57h6v0P")  --bottom horizontal line
+
+      Writefile(L_FILE_NAME,"%s","<FF>")
+
+------Page 3-------
+      Writefile(L_FILE_NAME,"%s",L_push)
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","With respect to this item ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","C.5., ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","the immediately")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s","preceding paragraph describes the threshold")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s","used to measure the magnitude of an incident")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",'of "terrorism" and the circumstances in which')
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s","the threshold will apply, for the purpose of de-")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s","termining whether this Exclusion will apply to")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s","that incident.  When the Exclusion applies to an")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s",'incident of "terrorism", there is no coverage un-')
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s","der this Coverage Form, Coverage Part or Pol-")
+      Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+      Writefile(L_FILE_NAME,"%s","icy.")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","D.")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+      Writefile(L_FILE_NAME,"%s","Exception Covering Certain Fire Losses")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","The following exception to the Exclusion Of Terror-")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","ism applies only if indicated and as indicated in the")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","Schedule of this endorsement.")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'If "terrorism" results in fire, we will pay for the loss')
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","or damage caused by that fire, subject to all appli-")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","cable policy provisions including the Limit of Insur-")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","ance on the affected property.  Such coverage for")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","fire applies only to direct loss or damage by fire to")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","Covered Property.  Therefore, for example, the")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","coverage does not apply to insurance provided")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","under Business Income and/or Extra Expense")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","coverage forms or endorsements that apply to")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","those coverage forms, or to the Legal Liability Cov-")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","erage Form or the Leasehold Interest Coverage")
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+      Writefile(L_FILE_NAME,"%s","Form.")
+
+--------column 2--------
+      Writefile(L_FILE_NAME,"%s",L_pop)
+      Writefile(L_FILE_NAME,"%s","<033>&a3000h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","E.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+0V")
+      Writefile(L_FILE_NAME,"%s","Application Of Other Exclusions")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","1.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'When the Exclusion Of Terrorism applies in')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'accordance with the terms of ')
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","C.1. ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","or ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","C.2., ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s","such")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'exclusion applies without regard to the Nuclear')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s","Hazard Exclusion in this Coverage Form, Cov-")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'erage Part or Policy.')
+
+      Writefile(L_FILE_NAME,"%s","<033>&a3200h+150V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold)
+      Writefile(L_FILE_NAME,"%s","2.")
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",'The terms and limitations of any terrorism')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'exclusion, or the inapplicability or omission of a')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'terrorism exclusion, do not serve to create cov-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'erage for any loss or damage which would oth-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'erwise be excluded under this Coverage Form,')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'Coverage Part or Policy, such as losses ex-')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'cluded by the Nuclear Hazard Exclusion or the')
+      Writefile(L_FILE_NAME,"%s","<033>&a3400h+120V")
+      Writefile(L_FILE_NAME,"%s",'War and Military Action Exclusion.')
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+      Writefile(L_FILE_NAME,"%s","<033>&a200h7200V")
+      Writefile(L_FILE_NAME,"%s",Trun(sfsoptend:form_print))
+      Writefile(L_FILE_NAME,"%s"," ")
+      Writefile(L_FILE_NAME,"%s",sfsoptend:edition_print)
+
+      Writefile(L_FILE_NAME,"%s","<033>&a2250h7200V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s",L_copyright_10)
+      Writefile(L_FILE_NAME,"%s",L_ARIAL)
+      Writefile(L_FILE_NAME,"%s"," ISO Properties, Inc., 2004")
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_Bold)
+
+      Writefile(L_FILE_NAME,"%s","<033>&a5000h7200V")
+      Writefile(L_FILE_NAME,"%s","Page ")
+      Writefile(L_FILE_NAME,"%n",L_page_counter)
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      L_page_counter=L_page_counter+1
+
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h7137V<033>*c53h6v0P") --top horizontal line
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h+0V<033>*c4a27b0P")  --left vertical line
+      Writefile(L_FILE_NAME,"%s","<033>&a5553h+0V<033>*c4a29b0P")  --right vertical line
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h7200V<033>*c57h6v0P")  --bottom horizontal line
+
+      Writefile(L_FILE_NAME,"%s","<FF>")
+
+    }
+  Next cppendorse
+}
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

@@ -1,0 +1,106 @@
+%%
+Screen
+        Name = "lmqmt001a";
+        Type = "Detail" ;
+        Highlight=Underscore ;
+        Padcharacter=Space ;
+        Screensize="dynamic";
+        Windowtitle="%a     %s Policy Information     %m";
+        Domain="SFQMASTER" ;
+--      resizeable = yes;
+        iconline = 0 ;
+
+        Global Unsigned Ascii Number G_QUOTE_NO[8] ,
+                                     G_STATE[2],
+                                     G_LINE_OF_BUSINESS[4] ;
+
+        Global String G_COMPANY_ID[10] ,
+                      g_fob[1] ,
+                      g_fob_description[75] ;
+
+        Access SFQMASTER, Set SFQMASTER:QUOTE_NO = G_QUOTE_NO ;
+
+        Include "stdkeys7.inc"
+
+Style Definition
+
+        Include "styles.inc"
+
+Functions
+
+        add/update="NO" ;
+
+        Include "stdfunc7.inc"
+
+Menu Definition
+
+        Include "stdmenu7.inc"
+
+}
+
+Toolbar Definition
+
+        Include "stdtoolbar7.inc"
+}
+
+Access Validation
+If SFQMASTER:QUOTE_NO <> G_QUOTE_NO Then
+    Error 1000 ;
+
+screen
+{
+%%
+                                                        _______________
+*------------------------------------------------------------------------------*
+|                                                                              |
+|                                 Form of Business                             |
+|                                                                              |
+|                             [R  _~~Corporation                               |
+|                                 _~~Individual                                |
+|                                 _~~Joint~Venture                             |
+|                                 _~~Organization                              |
+|                                 _~~Partnership                               |
+|                                 _~~Other         R]                          |
+|                                                                              |
+*------------------------------------------------------------------------------*
+| Description: ______________________________________________________________  |
+*------------------------------------------------------------------------------*
+
+
+%%
+
+components
+
+Fields
+        FUNCTION/noecho/showasguidetext;
+601     begin
+        if sfqmaster:form_of_business <> "" then
+            g_fob = sfqmaster:form_of_business
+        end
+        g_fob/values="C,I,J,O,P,T"/default ;
+1401    g_fob_description
+        hide if g_fob not one of "T" ;
+1401    g_fob_description/displayonly
+        access sfqmaster_alias, set sfqmaster_alias:quote_no = g_quote_no, generic
+
+        if sfqmaster_alias:quote_no = g_quote_no then
+            begin
+            change sfqmaster_alias
+                begin
+                sfqmaster_alias:form_of_business = g_fob
+                sfqmaster_alias:fob_description  = g_fob_description
+                end
+            end
+        else
+            begin
+            add sfqmaster_alias
+                begin
+                sfqmaster_alias:quote_no         = g_quote_no
+                sfqmaster_alias:form_of_business = g_fob
+                sfqmaster_alias:fob_description  = g_fob_description
+                end
+            end  ;
+
+}
+
+End

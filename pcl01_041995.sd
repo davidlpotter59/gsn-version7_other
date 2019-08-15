@@ -1,0 +1,833 @@
+%%
+/*
+Date Written: March 6, 2005
+
+Name: pcl01_041995.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+03/06/2006            MBE                  Initial Set-Up
+06/01/2006            MBE                  Data Set-Up
+===========================
+*/
+
+Program
+  Name = "pcl01_041995";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[16] = "pcl01_041995.cq";
+ String l_copy_name[20];
+
+
+ Unsigned ascii number L_PAGE_COUNTER[4],
+                       L_LINE_COUNTER,
+                       L_MAX_LINES = 60,
+                       l_YEAR[4],
+                       l_LINE_OF_BUSINESS[4],
+                       l_FOUND[1],
+                       L_ITEM_COUNTER,
+                       L_STATE[2]=0,
+                       L_LOOP[3];
+ WDATE L_EFF_DATE;
+
+   Include "csfonts.inc"
+   Include "swsut100.var"
+   Include "swsut200.var"
+   Include "swsut300.var"
+
+   include "line_spacing.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+Access SFPNAME,
+       Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFPLOCATION,
+       Set SFPLOCATION:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           SFPLOCATION:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           SFPLOCATION:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFPEND,
+       Set SFPEND:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           SFPEND:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           SFPEND:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFpmaster,
+       Set SFPmaster:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           SFPmaster:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           SFPmaster:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+Access cppendorse,
+       Set cppendorse:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           cppendorse:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           cppendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFSCOMPANY,
+       Set SFSCOMPANY:COMPANY_ID = SFPNAME:COMPANY_ID, Exact
+
+
+   Include "swsut103.inc"
+   I_CODE = "PCL01"
+   Include "swsut200.inc"
+
+
+l_page_counter = 1
+l_line_counter =0
+While SFPEND:POLICY_NO    = SFPPRINT1:POLICY_NO And
+      SFPEND:POL_YEAR     = SFPPRINT1:POL_YEAR And
+      SFPEND:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+     {
+         L_STATE            = sfpmaster:STATE
+         L_COMPANY_ID       = sfpname:COMPANY_ID
+         L_LINE_OF_BUSINESS = sfpname:LINE_OF_BUSINESS
+
+         Access SFSOPTEND,
+           Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+               SFSOPTEND:STATE            = L_STATE,
+               SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+               SFSOPTEND:CODE             = I_CODE, generic
+
+         While SFSOPTEND:COMPANY_ID       = L_COMPANY_ID and
+               SFSOPTEND:STATE            = L_STATE and
+               SFSOPTEND:LINE_OF_BUSINESS = l_LINE_OF_BUSINESS and
+               SFSOPTEND:CODE             = I_CODE
+
+           {  --start of sfsoptend check
+             If (sfpname:eff_date >= sfsoptend:eff_date and
+                (sfpname:eff_date < sfsoptend:exp_date or
+                 sfsoptend:exp_date = 0)) then
+               {
+                 l_eff_date = sfsoptend:eff_date
+               }
+             next sfsoptend
+           }
+           Access SFSOPTEND,
+           Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+               SFSOPTEND:STATE            = L_STATE,
+               SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+               SFSOPTEND:CODE             = I_CODE,
+               SFSOPTEND:EFF_DATE         = L_EFF_DATE, exact
+
+           Access cppendorse,
+           Set cppendorse:POLICY_NO    = SFPPRINT1:POLICY_NO,
+               cppendorse:POL_YEAR     = SFPPRINT1:POL_YEAR,
+               cppendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE,
+               cppendorse:PREM_NO      = SFPEND:PREM_NO,
+               cppendorse:BUILD_NO     = SFPEND:BUILD_NO,
+               cppendorse:CODE         = I_CODE, Generic
+
+           If SFPEND:CODE = I_CODE Then
+             {
+              Access CPPENDORSE,
+                 SET CPPENDORSE:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+                     CPPENDORSE:POL_YEAR     = SFPPRINT1:POl_YEAR ,
+                     CPPENDORSE:END_SEQUENCE = SFPPRINT1:END_SEQUENCE ,
+                     CPPENDORSE:PREM_NO      = SFPEND:PREM_NO  ,
+                     CPPENDORSE:BUILD_NO     = SFPEND:BUILD_NO ,
+                     CPPENDORSE:CODE         = I_CODE, GENERIC
+              If sfsoptend:edition <> 0 then
+              {
+                Writefile(L_FILE_NAME,"%s",l_arial)
+                Writefile(L_FILE_NAME,"%s","<033>&a420h7080V")
+                Writefile(L_FILE_NAME,"%s","Ed. ")
+                Writefile(L_FILE_NAME,"%n",sfsoptend:edition)
+                Writefile(L_FILE_NAME,"%s"," ")
+              }
+
+           Writefile(L_FILE_NAME,"%s",l_arial_bold)
+           Writefile(L_FILE_NAME,"%s","<033>&a4600h0V")
+           Writefile(L_FILE_NAME,"%s","PCL-01 ")
+           Writefile(L_FILE_NAME,"%s","(Ed. 4/95)")
+           Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_14)
+           Writefile(L_FILE_NAME,"%s","<033>&a520h+240V")
+           Writefile(L_FILE_NAME,"%s","PASTORAL COUNSELING PROFESSIONAL LIABILITY INSURANCE")
+           L_line_counter = l_line_counter + 2
+
+
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","This endorsement forms a part of the policy to which attached, effective on the inception date of the policy")
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","unless otherwise stated herein. (The following information is required only when this endorsement is issued  ")
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","subsequent to preparation of policy). ")
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+
+           L_line_counter = l_line_counter + 2
+          -- Writefile(L_FILE_NAME,"%s","Location No: ")
+          -- Writefile(L_FILE_NAME,"%n",cppendorse:prem_no)
+
+          -- Writefile(L_FILE_NAME,"%s","<033>&a2400h+0V")
+          -- L_line_counter = l_line_counter +1
+          -- Writefile(L_FILE_NAME,"%s","Building No: ")
+          -- Writefile(L_FILE_NAME,"%n",cppendorse:build_no)
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+140V")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","Endorsement Effective: ")
+           Writefile(L_FILE_NAME,"%s","<033>&a1260h+10V<033>*c1000h4v0P") --top horizontal line to
+           Writefile(L_FILE_NAME,"%d",cppendorse:eff_date)
+
+           Writefile(L_FILE_NAME,"%s","<033>&a2400h+0V")
+
+           Writefile(L_FILE_NAME,"%s",l_arial)
+
+           Writefile(L_FILE_NAME,"%s","Policy No.: ")
+           Writefile(L_FILE_NAME,"%n",cppendorse:policy_no)
+           Writefile(L_FILE_NAME,"%s","<033>&a2900h+10V<033>*c1000h4v0P") --top horizontal line to
+           Writefile(L_FILE_NAME,"%s","<033>&a4000h+0V")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","Endorsement No.: ")
+
+
+           Writefile(L_FILE_NAME,"%n",cppendorse:end_sequence)
+           Writefile(L_FILE_NAME,"%s","<033>&a4820h+0V<033>*c500h4v0P") --top horizontal line to
+
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+           L_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s",l_arial)
+
+           Writefile(L_FILE_NAME,"%s","Named Insured: ")
+
+
+           For L_LOOP = 1 to 3
+             {
+               If (cppendorse:name[l_LOOP] <> "") Then
+                 {
+                   Writefile(L_FILE_NAME,"%s","<033>&a940h+0V")
+                   Writefile(L_FILE_NAME,"%s",cppendorse:name[L_LOOP])
+                   Writefile(L_FILE_NAME,"%s","<033>&a940h+10V<033>*c4360h4v0P") --top horizontal line to
+                   Writefile(L_FILE_NAME,"%s","<NL>")
+
+                 }
+             }
+
+
+
+
+           Writefile(L_FILE_NAME,"%s","<033>&a2800h+160V")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+
+           L_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","Countersigned by:")
+           Writefile(L_FILE_NAME,"%s","<033>&a3620h+10V<033>*c1680h4v0P") --top horizontal line to
+
+           Writefile(L_FILE_NAME,"%s","<033>&a4000h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","(Authorized Representative)")
+
+           Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_12)
+           Writefile(L_FILE_NAME,"%s","<033>&a1900h+180V")
+           L_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","ADDITIONAL DECLARATIONS")
+
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+           L_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","1. ")
+
+
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+           Writefile(L_FILE_NAME,"%s","Limits of Liability $ ")
+           Writefile(L_FILE_NAME,"%s","<033>&a1220h+10V<033>*c1760h4v0P") --top horizontal line to
+
+
+           Writefile(L_FILE_NAME,"%s",str(cppendorse:limit[1],"ZZ,ZZZ,ZZZ.ZZ"))
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a3020h+0V")
+           Writefile(L_FILE_NAME,"%s","each claim $ ")
+
+
+           Writefile(L_FILE_NAME,"%s",str(cppendorse:limit[2],"ZZ,ZZZ,ZZZ.ZZ"))
+           Writefile(L_FILE_NAME,"%s","<033>&a3600h+10V<033>*c1700h4v0P") --top horizontal line to
+
+           Writefile(L_FILE_NAME,"%s",l_arial)
+
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","annual aggregate. (Applicable to all claims under this endorsement).")
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","2.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+           Writefile(L_FILE_NAME,"%s","Schedule of Positions Covered:")
+           Writefile(L_FILE_NAME,"%s","<033>&a1040h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","Named Position")
+           Writefile(L_FILE_NAME,"%s","<033>&a1040h+10V<033>*c705h7v0P")
+           Writefile(L_FILE_NAME,"%s","<033>&a3200h+0V")
+           Writefile(L_FILE_NAME,"%s","Number of Pastors")
+           Writefile(L_FILE_NAME,"%s","<033>&a3200h+10V<033>*c825h7v0P")
+           Writefile(L_FILE_NAME,"%s","<033>&a1200h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","Pastor")
+           Writefile(L_FILE_NAME,"%s","<033>&a3560h+0V")
+
+
+           Writefile(L_FILE_NAME,"%n",cppendorse:NO_MINISTERS)
+
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","I.")
+           Writefile(L_FILE_NAME,"%s",l_arial_bold)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+           Writefile(L_FILE_NAME,"%s","INSURING AGREEMENTS")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","A.")
+           Writefile(L_FILE_NAME,"%s",l_arial_bold)
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","Coverage")
+           Writefile(L_FILE_NAME,"%s","<033>&a+25h-30V")
+           Writefile(L_FILE_NAME,"%s","<033>*c25h8v0P") --Dash
+           Writefile(L_FILE_NAME,"%s","<033>&a+50h+30V")
+           Writefile(L_FILE_NAME,"%s","Pastoral Counseling Professional Liability")
+
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","We will pay those sums that the insured becomes legally obligated to pay as damages because of any")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","acts, errors, or omissions of the insured, arising out of counseling activities by a pastor who is the")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","insured or is employed by the insured, for which the insured is liable.")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","B.")
+           Writefile(L_FILE_NAME,"%s",l_arial_bold)
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","Defense, Settlement")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","We shall have the right and duty to defend any suit against the insured seeking damages as covered in")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","A. above, even if any of the allegations of the suit are groundless, false, or fraudulent and may make")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","such investigation and settlement of any claim or suit as deemed expedient, but we shall not be")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","obligated to pay any claim or judgement or to defend any suit after the applicable limit of our liability")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","has been exhausted by payment of judgements or settlements.")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","C.")
+           Writefile(L_FILE_NAME,"%s",l_arial_bold)
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","Supplementary Payments")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","We will pay in addition to the applicable limit of liability:")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","1.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","All expenses incurred by us, all costs taxed against the insured in any suit defended by us and all")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","interest on the entire amount of any judgment therein which accrues after entry of the judgment and")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","before we have paid or tendered or deposited in court that part of the judgment which does not")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","exceed the limit of our liability thereon.")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","2.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","Premiums on appeal bonds require in any such suit, premiums on bonds to release attachments in")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","any such suit for an amount not in excess of the applicable limit of liability of this policy, but we")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","shall have no obligation to apply for or furnish any such bonds.")
+    --     L_PAGE_COUNTER = l_page_counter
+    --     Writefile(L_FILE_NAME,"%s","<033>&a4800h7000V")
+    --     Writefile(L_FILE_NAME,"%s","Page ")
+    --     Writefile(L_FILE_NAME,"%n",L_PAGE_COUNTER)
+           l_page_counter = 0
+           do bottom_page
+
+
+
+           Writefile(L_FILE_NAME,"%s","<FF>")
+
+           L_line_counter = 0
+           l_page_counter = 1
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","3.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","Reasonable expenses incurred by the insured at our request including actual loss of wages or salary ")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","(but not loss of other income) not to exceed $25 per day because of his attendance at hearings or")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           L_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","trials at such request.")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+           L_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","II.")
+           Writefile(L_FILE_NAME,"%s",l_arial_bold)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+           Writefile(L_FILE_NAME,"%s","EXCLUSIONS")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","The insurance coverage provided by this endorsement does not apply:")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","A.")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability assumed by the insured under any contract or agreement.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","B.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability on account of bodily injury to or sickness, disease or death of any employee of the insured")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","arising out of and in the course of his employment by the insured or to any obligation for which the")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","insured or any carrier as his insurer may be held liable, under any Workers' Compensation,")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","Unemployment Compensation or Disability Benefits Law or under any similiar law.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","C.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability resulting from the insured's commitment of a patient to a psychiatric institution unless such")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","commitment was made in full compliance with the Constitution of the United States and the")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","Constitution or laws or statutes of the state wherein such commitment was made.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","D.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability resulting from the ownership, maintenance, operation, use, loading or unloading of any")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","motor vehicle, trailer, semi trailer, watercraft or aircraft.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","E.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability resulting from acts, errors, or omissions of the insured as a member of a formal")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","accreditation or similiar professional board or committee of any hospital or professional society.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","F.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability resulting from an insured's accepting or undertaking custodial care or responsibility of a")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","patient pursuant to request, instruction, authorization or direction of any governmental agency,")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","authority, board or officer having such authority or responsibility.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","G.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability resulting from the rendering or failure to render professional services by a member of the")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","medical, dental or allied health professions, including physicians, dentists, chiropractors, psychiatrists")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","and psychologists.")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           Writefile(L_FILE_NAME,"%s","H.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability resulting from any actual or alleged conduct of a sexual nature.")
+           l_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           Writefile(L_FILE_NAME,"%s","I.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability resulting from any dishonest, fraudulent or criminal act or omission of any insured.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","J.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability on account of injury arising out of willful violation of a penal statute or ordinance")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           Writefile(L_FILE_NAME,"%s","committed by or with the knowledge or consent of any insured.")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","K.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability on account of injury caused by the insured while:")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","1.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","Intoxicated; or")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           Writefile(L_FILE_NAME,"%s","2.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s",'Using illegal drugs or "Controlled Substances" as defined by the Federal Food and Drug Law at 21')
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s",'U.S.C.A. Sections 811 and 812, including any amendments. "Controlled Substances" include but')
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","are not limited to cocaine, LSD, marijuana and all narcotic or hallucinogenic drugs. However, this")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           l_line_counter = l_line_counter + 1
+
+           Writefile(L_FILE_NAME,"%s","does not apply to the legitimate use of prescription drugs by a person following the orders of a")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","licensed physician.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","The burden of proof rests with us.")
+           do bottom_page
+           Writefile(L_FILE_NAME,"%s","<FF>")
+
+
+           l_line_counter = 0
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s",l_arial)
+
+           Writefile(L_FILE_NAME,"%s","L.")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability resulting from acts or omissions of the insured as proprietor, superintendent, or executive")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           Writefile(L_FILE_NAME,"%s","officer of any hospital, sanitarium or medical clinic with bed and board facilities, or while acting for a")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","professional counseling service organized expressly for the purpose of providing counseling, referral,")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","educational, or similiar services.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","M.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability resulting from the rendering of medical, radiological, surgical, dental or nursing treatments,")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","including shock therapy, and the prescription, utilization, furnishing or dispensing of drugs or medical,")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","radiological, surgical, dental or nursing supplies or appliances.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","N.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","To liability, including personal injury liability, arising out of one or more of the following offenses:")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","1.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","False arrest, detention or imprisonment, or malicious prosecution.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","2.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","Libel, slander, defamation or violation of right of privacy.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           Writefile(L_FILE_NAME,"%s","3.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","Wrongful entry or eviction or other invasion of right of private occupancy.")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","III.")
+           Writefile(L_FILE_NAME,"%s",l_arial_bold)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+           Writefile(L_FILE_NAME,"%s","PERSONS INSURED")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","A.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","Each of the following is an insured under the insurance coverage provided by this endorsement to the")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","extent set forth below, except as indicated in paragraph two.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","1.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","The Named Insured.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","2.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","Any member of the Named Insured's congregation, but only with respect to their liability as such.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","3.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","If the Named Insured is designated in the Declarations as other than an individual, any executive")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","officer, stockholder, member of the board of trustees, member of the board of directors or member")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","of the board of governors or similiar board of the Named Insured while acting within the scope of")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","his duties as such.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","4.")
+           Writefile(L_FILE_NAME,"%s","<033>&a800h+0V")
+           Writefile(L_FILE_NAME,"%s","Any employee occupying the position of a pastor.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","B.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s","No person whether or not included in 1., 2., 3. or 4. above shall be an insured under this endorsement")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","for liability arising out of counseling activities unless such counseling activities are or were being")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","performed by a pastor.")
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","IV.")
+           Writefile(L_FILE_NAME,"%s",l_arial_bold)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+           Writefile(L_FILE_NAME,"%s","LIMITS OF LIABILITY")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","Regardless of the number of insureds under this endorsement, our liability is limited as follows:")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s",'Limit of Liability stated as applicable "each claim" is the limit of our liability for all damages on account of')
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s",'each claim or suit covered hereunder; the Limit of Liability stated as "annual aggregate" is, subject to the')
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","foregoing provision respecting each claim, the total limit of our liability hereunder for all damages.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","If the number of pastors actually employed or associated with the Named Insured, or otherwise occupying")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s",'the position of pastor with the Named Insured shall exceed the number stated in the "Schedule of Positions')
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s",'Covered" and any endorsements hereto, our liability shall be limited to that proportion of the applicable')
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","Limits of Liability specified which the number stated for such position bears to the actual number of")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","pastors.")
+           do bottom_page
+           Writefile(L_FILE_NAME,"%s","<FF>")
+           l_line_counter = 0 -- reset line counter
+
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+           l_line_counter = l_line_counter + 2
+
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","V.")
+           Writefile(L_FILE_NAME,"%s",l_arial_bold)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+           Writefile(L_FILE_NAME,"%s","ADDITIONAL DEFINITIONS")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","A.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s",'When used herein the term "counseling activities" shall mean consultations or communications')
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","between an insured and another person wherein the insured offers advice or guidance with regard to")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","conduct or proposed conduct.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","B.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s",'The term "Pastor" shall mean an ordained or licensed person having spiritual charge over a')
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","congregation or group.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","C.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s",'The term "claim" shall mean any claim for damages asserted against the insured because of acts, errors')
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","or omissions covered under the endorsement. Two or more claims arising out of a single act, error,")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","omission or personal injury or a series of related acts, errors, omissions, or personal injuries shall be")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","treated as a single claim.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","D.")
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+0V")
+           Writefile(L_FILE_NAME,"%s",'The term "occurrence" shall be deemed to include acts, errors or omissions covered under this')
+           Writefile(L_FILE_NAME,"%s","<033>&a600h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","endorsement.")
+           Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","VI.")
+           Writefile(L_FILE_NAME,"%s",l_arial_bold)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+0V")
+           Writefile(L_FILE_NAME,"%s","CONDITIONS")
+           Writefile(L_FILE_NAME,"%s",l_arial)
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s",'Except as stated in this endorsement, the policy does not apply to damages arising out of "counseling')
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s",'activities" as defined.')
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","This endorsement applies only to acts or omissions committed on or after the effective date hereof and on or")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","before expiration date stated in the policy declarations to which this form is attached.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","All conditions applicable to the Liability Section of this policy apply to coverage provide by this")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","endorsement, including specifically the Commercial General Liability Conditions and Definitions.")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","Coverage applies only to acts or omissions, occurring within the United States of America, its territories or")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 1
+           Writefile(L_FILE_NAME,"%s","possessions or Canada, and on or before the expiration date stated in the policy Declarations to which this")
+           Writefile(L_FILE_NAME,"%s","<033>&a400h+120V")
+           l_line_counter = l_line_counter + 2
+           Writefile(L_FILE_NAME,"%s","form is attached.")
+           do bottom_page
+           l_line_counter = 0
+           l_page_counter = 0
+           Writefile(L_FILE_NAME,"%s","<FF>")
+
+
+
+
+    }
+  Next SFPEND
+}
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+
+
+Procedure Definition
+
+Procedure Bottom_page
+begin
+
+  Writefile(L_FILE_NAME,"%s","<033>&a200h7200V")
+  Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+
+  Writefile(L_FILE_NAME,"%s","PCL-01 ")
+  Writefile(L_FILE_NAME,"%s","(Ed. 4/95)")
+  Writefile(L_FILE_NAME,"%s","<033>&a540h7200V")
+  Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD)
+
+  Writefile(L_FILE_NAME,"%s","<033>&a5000h7200V")
+  Writefile(L_FILE_NAME,"%s","Page ")
+  l_page_counter = l_page_counter +1
+  Writefile(L_FILE_NAME,"%n",l_page_counter)
+
+end
+
+
+
+End

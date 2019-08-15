@@ -1,0 +1,277 @@
+%%
+/*
+Date Written: April 1, 2005
+
+Name: kbic03_012009.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+04/20/2010            JLB             New form kbic03_012009
+===========================
+*/
+
+Program
+  Name = "kbic03_012009";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[16] = "kbic03_012009.cq";
+ String l_company_id;
+ String L_COPY_NAME[20],
+        l_font[35];
+ Unsigned ascii number l_max_lines=60;
+ Unsigned Ascii Number L_YEAR[4];
+ Unsigned Ascii number L_LINE_OF_BUSINESS[4];
+ Unsigned ascii number l_found[1];
+ Unsigned Ascii Number L_ITEM_COUNTER;
+ Unsigned Ascii Number L_STATE[2]=0;
+ Unsigned Ascii Number L_LOOP;
+ wdate L_EFF_DATE;
+ Unsigned Ascii Number L_LINE_COUNTER;
+ Unsigned Ascii Number L_PAGE_NUMBER;
+
+   Include "csfonts.inc"
+   Include "swsut100.var"
+   Include "swsut200.var"
+ --Include "swsut300.var"
+   Include "line_spacing.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+Access SFPNAME,
+   Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access capvehicle,
+   Set capvehicle:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       capvehicle:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       capvehicle:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access capendorse,
+   Set capendorse:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       capendorse:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       capendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access sfpend1_alias,
+   Set sfpend1_alias:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       sfpend1_alias:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       sfpend1_alias:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+   Include "swsut100.inc"
+   I_CODE = "KBIC03"
+   Include "swsut200.inc"
+
+Access capendorse,
+   Set capendorse:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       capendorse:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       capendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, generic
+--       capendorse:vehicle_no   = capvehicle:vehicle_no, Generic
+
+While capendorse:POLICY_NO    = SFPPRINT1:POLICY_NO and
+      capendorse:POL_YEAR     = SFPPRINT1:POL_YEAR and
+      capendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+{
+  If capendorse:code = I_CODE then
+    {
+        l_state            = capvehicle:state
+        L_COMPANY_ID       = sfpname:COMPANY_ID
+        L_LINE_OF_BUSINESS = sfpname:LINE_OF_BUSINESS
+
+        Access SFSOPTEND,
+           Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+               SFSOPTEND:STATE            = L_STATE,
+               SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+               SFSOPTEND:CODE             = I_CODE, generic
+
+         While SFSOPTEND:COMPANY_ID       = L_COMPANY_ID and
+               SFSOPTEND:STATE            = L_STATE and
+               SFSOPTEND:LINE_OF_BUSINESS = l_LINE_OF_BUSINESS and
+               SFSOPTEND:CODE             = I_CODE
+
+           {  --start of sfsoptend check
+             If (sfpname:eff_date >= sfsoptend:eff_date and
+                (sfpname:eff_date < sfsoptend:exp_date or
+                 sfsoptend:exp_date = 0)) then
+               {
+                 l_eff_date = sfsoptend:eff_date
+               }
+             next sfsoptend
+           }
+
+        Access SFSOPTEND,
+           Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+               SFSOPTEND:STATE            = L_STATE,
+               SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+               SFSOPTEND:CODE             = I_CODE,
+               SFSOPTEND:EFF_DATE         = L_EFF_DATE, exact
+
+        If sfsoptend:edition <> 0 then
+          {
+            Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+            Writefile(L_FILE_NAME,"%s","<033>&a420h7080V")
+            Writefile(L_FILE_NAME,"%s","Ed. ")
+            Writefile(L_FILE_NAME,"%n",sfsoptend:edition)
+          }
+
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","<033>&a320h7200V")
+        Writefile(L_FILE_NAME,"%s",l_copyright_6)
+        Writefile(L_FILE_NAME,"%s"," ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s",sfsoptend:COPYRIGHT)
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_12)
+        Writefile(L_FILE_NAME,"%s","<033>&a4500h120V")
+        Writefile(L_FILE_NAME,"%s",Trun(SFSOPTEND:FORM_PRINT))
+        Writefile(L_FILE_NAME,"%s"," ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+        Writefile(L_FILE_NAME,"%s",SFSOPTEND:EDITION_PRINT)
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","NAMED DRIVER EXCLUSION")
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","This endorsement excludes the named driver.")
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","The provisions of this endorsement apply only when the endorsement number is listed in the Declarations.  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","Except as provided below, all other provisions in this policy are unchanged.  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+20V")
+        Writefile(L_FILE_NAME,"%s","<033>*c5200h8v0p") --Horizontal line
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+200V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Policy # ")
+        Writefile(L_FILE_NAME,"%n",sfpprint1:policy_no)
+        Writefile(L_FILE_NAME,"%s","<033>&a1800h+0V")
+        Writefile(L_FILE_NAME,"%s","Effective:  ")
+        Writefile(L_FILE_NAME,"%d",sfpname:eff_date)
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+200V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","SCHEDULE  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+200V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","Named Excluded Driver:  ")
+
+/*Access capendorse,
+       capendorse:POLICY_NO    = sfpend1_alias:POLICY_NO ,
+       capendorse:POL_YEAR     = sfpend1_alias:POL_YEAR ,
+       capendorse:END_SEQUENCE = sfpend1_alias:END_SEQUENCE,
+       capendorse:vehicle_no   = sfpend1_alias:vehicle_no, generic
+*/
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        l_font             = l_arial_9
+        l_v_position       = "+0"
+        l_h_position       = "100"
+        l_character_string = capendorse:Description
+        l_max_lines        = 60
+        l_max_char         = 80
+        include "line_spacing.inc"
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h2100V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","COVERAGE MODIFICATION  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","The following exclusion is added:  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+200V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","Named Driver Exclusion")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","We ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","do not provide insurance for any sort of costs, damages, expenses, liability or ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","loss")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s",", directly or indirectly, wholly or partially, aggravated  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s","by, caused by, or resulting from the operation or use of any ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","covered auto ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","by a ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","named excluded driver")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s",", whether or not such operation or  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","use was with the express or implied permission of an individual ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","insured")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s",".  This exclusion applies to:  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","A.")
+        Writefile(L_FILE_NAME,"%s","<033>&a300h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","The excluded operator or user; and  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+160V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","B.")
+        Writefile(L_FILE_NAME,"%s","<033>&a300h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","The ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","auto's")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s"," owner.")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+160V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","ADDITIONAL DEFINITION  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","As used in this endorsement, the following definition is added:  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","Named excluded driver ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","means a driver who is shown in the Schedule of this endorsement as a ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","named excluded driver.")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+700V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","The terms and conditions of this endorsement are hereby acknowledged and accepted.  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a100h+480V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Signature of ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","Insured:")
+        Writefile(L_FILE_NAME,"%s","<033>&a980h+20V")
+        Writefile(L_FILE_NAME,"%s","<033>*c2450h5v0p") --Horizontal line
+
+        Writefile(L_FILE_NAME,"%s","<FF>")
+      }
+    Next capendorse
+  }
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

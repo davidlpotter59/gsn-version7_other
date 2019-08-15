@@ -1,0 +1,57 @@
+%%                       
+/*  Convert miss assigned line_of_business to wc
+
+    march 23, 2008
+
+    SCIPS.com
+
+*/
+
+Program
+        Name = "change_to_wc_prsmaster" ;
+        Type = "File" ;
+        Domain = "dummy" ;
+        Padcharacter = Space ;
+
+        string l_company_id[10] = "DELOS     "
+        local unsigned ascii number l_policy_no[9],
+                                    l_counter[4];
+
+        Unsigned Ascii Number l_line_of_business[4]= 9;
+
+        Include "sfsrevname7.var"
+
+Initialization
+  l_policy_no = val(COMMANDLINE[1,9])
+
+Update
+  write("<014>")
+
+access prsmaster,
+   set prsmaster:company_id = l_company_id,
+       prsmaster:policy_no  = l_policy_no, approximate
+
+while prsmaster:company_id = l_company_id and
+      prsmaster:policy_no  = l_policy_no
+  begin
+    access prsmaster_alias,
+       set prsmaster_alias:company_id = prsmaster:company_id,
+           prsmaster_alias:POLICY_NO  = prsmaster:policy_no,
+           prsmaster_alias:SUB_CODE   = prsmaster:sub_code, exact
+
+    if prsmaster_alias:company_id = prsmaster:company_id and
+       prsmaster_alias:POLICY_NO  = prsmaster:policy_no and
+       prsmaster_alias:SUB_CODE   = prsmaster:sub_code then
+      {
+        change prsmaster_alias
+          begin
+            prsmaster_alias:line_of_business = l_line_of_business
+          end
+         l_COUNTER = l_COUNTER + 1
+      }
+    next prsmaster
+  end
+
+Screen Exit
+  Write ("%c%s%n",02001,"I updated -->",l_COUNTER)
+end

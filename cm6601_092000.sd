@@ -1,0 +1,286 @@
+%%
+/*
+Date Written: April 1, 2005
+
+Name: cm6601_092000.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+04/01/2005            DWR
+08/15/2006            JES                  New Header Inserted
+10/11/2006            JLB                  Added l_ledup & cleaned up code
+==============================================================
+*/
+
+Program
+  Name = "cm6601_092000";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[16] = "cm6601_092000.cq";
+ String L_FONT[35];
+ String L_COPY_NAME[20] ;
+ String L_SFPLOCATION_ZIP;
+ String L_cppendorse_ZIP;
+ String L_cppendorse1_zip;
+ String L_vertical_pos;
+ String L_horizontal_pos;
+ String L_string[75];
+ Unsigned ascii number l_max_lines;
+ Unsigned ascii number L_pitch_full;
+ Unsigned ascii number L_pitch_half;
+ Unsigned ascii number L_page_counter;
+ Unsigned Ascii Number L_YEAR[4];
+ Unsigned Ascii number L_LINE_OF_BUSINESS[4];
+ Unsigned ascii number l_found[1];
+ Unsigned Ascii Number L_ITEM_COUNTER;
+ Unsigned Ascii Number L_STATE[2]=0;
+ Unsigned Ascii Number L_LOOP;
+ wdate L_EFF_DATE;
+ Unsigned Ascii Number L_LINE_COUNTER;
+ Unsigned Ascii Number L_PAGE_NUMBER;
+
+   Include "csfonts.inc"
+   Include "swsut100.var"
+   Include "swsut200.var"
+   Include "swsut300.var"
+   Include "line_spacing.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+    Writefile(L_FILE_NAME,"%s",L_ledup)
+
+Access SFPNAME,
+   Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access cppendorse1,
+   Set cppendorse1:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       cppendorse1:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       cppendorse1:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access sfpmaster,
+   Set sfpmaster:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       sfpmaster:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       sfpmaster:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFPEND,
+   Set SFPEND:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPEND:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPEND:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+   Include "swsut100.inc"
+   I_CODE = "CM6601"
+   Include "swsut200.inc"
+   L_page_counter=1
+
+While SFPEND:POLICY_NO    = SFPPRINT1:POLICY_NO And
+      SFPEND:POL_YEAR     = SFPPRINT1:POL_YEAR And
+      SFPEND:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+{
+  If SFPEND:CODE = I_CODE Then
+    {
+      L_STATE            = sfpmaster:STATE
+      L_COMPANY_ID       = sfpname:COMPANY_ID
+      L_LINE_OF_BUSINESS = sfpname:LINE_OF_BUSINESS
+
+      Access SFSOPTEND,
+         Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+             SFSOPTEND:STATE            = L_STATE,
+             SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+             SFSOPTEND:CODE             = I_CODE, generic
+
+       While SFSOPTEND:COMPANY_ID       = L_COMPANY_ID and
+             SFSOPTEND:STATE            = L_STATE and
+             SFSOPTEND:LINE_OF_BUSINESS = l_LINE_OF_BUSINESS and
+             SFSOPTEND:CODE             = I_CODE
+
+         {  --start of sfsoptend check
+           If (sfpname:eff_date >= sfsoptend:eff_date and
+              (sfpname:eff_date < sfsoptend:exp_date or
+               sfsoptend:exp_date = 0)) then
+             {
+               l_eff_date = sfsoptend:eff_date
+             }
+           next sfsoptend
+         }
+      Access SFSOPTEND,
+         Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+             SFSOPTEND:STATE            = L_STATE,
+             SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+             SFSOPTEND:CODE             = I_CODE,
+             SFSOPTEND:EFF_DATE         = L_EFF_DATE, exact
+
+      If sfsoptend:edition <> 0 then
+        {
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+          Writefile(L_FILE_NAME,"%s","<033>&a420h7080V")
+          Writefile(L_FILE_NAME,"%s","Ed. ")
+          Writefile(L_FILE_NAME,"%n",sfsoptend:edition)
+        }
+
+      Access cppendorse1,
+         Set cppendorse1:POLICY_NO     = SFPPRINT1:POLICY_NO,
+             cppendorse1:POL_YEAR      = SFPPRINT1:POL_YEAR,
+             cppendorse1:END_SEQUENCE  = SFPPRINT1:END_SEQUENCE,
+             cppendorse1:PREM_NO       = sfpend:PREM_NO,
+             cppendorse1:BUILD_NO      = sfpend:BUILD_NO,
+             cppendorse1:CODE          = I_CODE, Generic
+
+      L_cppendorse1_ZIP = If (Val(cppendorse1:STR_ZIPCODE[6,9]) = 0) Then
+                                  cppendorse1:STR_ZIPCODE[1,5]
+                          Else
+                                  cppendorse1:STR_ZIPCODE[1,5] + "-" +
+                                  cppendorse1:STR_ZIPCODE[6,9]
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+      Writefile(L_FILE_NAME,"%s","<033>&a3990h+240V")
+      Writefile(L_FILE_NAME,"%s","COMMERCIAL INLAND MARINE")
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+      Writefile(L_FILE_NAME,"%s","<033>&a4710h+120V")
+      Writefile(L_FILE_NAME,"%s",Trun(SFSOPTEND:FORM_PRINT))
+      Writefile(L_FILE_NAME,"%s"," ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+      Writefile(L_FILE_NAME,"%s",SFSOPTEND:EDITION_PRINT)
+
+      L_STRING = "THIS ENDORSEMENT CHANGES THE POLICY.  PLEASE READ IT CAREFULLY."
+      L_FONT = L_ARIAL_bold_12
+      L_PITCH_HALF = 6
+      L_PITCH_FULL = 12
+      L_VERTICAL_POS = "+240"
+      L_HORIZONTAL_POS = "2800"
+      Include "center3.pro"
+      L_line_counter=L_line_counter+1
+
+      L_STRING = "EXCLUSION OF NAMED CUSTOMERS"
+      L_FONT = L_ARIAL_bold_16
+      L_PITCH_HALF = 8
+      L_PITCH_FULL = 16
+      L_VERTICAL_POS = "+260"
+      L_HORIZONTAL_POS = "2800"
+      Include "center3.pro"
+      L_line_counter=L_line_counter+1
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      Writefile(L_FILE_NAME,"%s","This endorsement modifies insurance provided under the following:")
+      L_line_counter=L_line_counter+1
+
+      Writefile(L_FILE_NAME,"%s","<033>&a400h+240V")
+      Writefile(L_FILE_NAME,"%s","ACCOUNTS RECEIVABLE COVERAGE FORM")
+      L_line_counter=L_line_counter+1
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+      Writefile(L_FILE_NAME,"%s","We will not pay for any loss of or damage to records of accounts receivable of your customers listed below:")
+      L_line_counter=L_line_counter+1
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+180V")
+      Writefile(L_FILE_NAME,"%s","<033>*c5200h8v0p") --Horizontal line
+
+      Writefile(L_FILE_NAME,"%s",L_push)
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+0V")
+      Writefile(L_FILE_NAME,"%s","<033>*c4a280b0P") --Vertical line
+
+      Writefile(L_FILE_NAME,"%s","<033>&a2880h+0V")
+      Writefile(L_FILE_NAME,"%s","<033>*c4a280b0P") --Vertical line
+
+      Writefile(L_FILE_NAME,"%s","<033>&a5400h+0V")
+      Writefile(L_FILE_NAME,"%s","<033>*c4a282b0P") --Vertical line
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+160V")
+      Writefile(L_FILE_NAME,"%s","<033>*c5200h8v0p") --Horizontal line
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+510V")
+      Writefile(L_FILE_NAME,"%s","<033>*c5206h8v0p") --Horizontal line
+
+      Writefile(L_FILE_NAME,"%s",L_pop)
+
+      L_STRING = "Customer"
+      L_FONT = L_ARIAL_bold_9
+      L_PITCH_HALF = 4.5
+      L_PITCH_FULL = 9
+      L_VERTICAL_POS = "+120"
+      L_HORIZONTAL_POS = "1440"
+      Include "center3.pro"
+      L_line_counter=L_line_counter+1
+
+      L_STRING = "Address"
+      L_FONT = L_ARIAL_bold_9
+      L_PITCH_HALF = 4.5
+      L_PITCH_FULL = 9
+      L_VERTICAL_POS = "+0"
+      L_HORIZONTAL_POS = "4100"
+      Include "center3.pro"
+      L_line_counter=L_line_counter+1
+
+      If str(cppendorse1:prem_no) = "1" Then
+        {
+          Writefile(L_FILE_NAME,"%s","<033>&a240h+140V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+          Writefile(L_FILE_NAME,"%s","1.")
+          L_item_counter=L_item_counter+1
+        }
+
+      If str(cppendorse1:prem_no) = "2" Then
+        {
+          Writefile(L_FILE_NAME,"%s","<033>&a240h+140V")
+          Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+          Writefile(L_FILE_NAME,"%s","2.")
+          L_item_counter=L_item_counter+1
+        }
+      Writefile(L_FILE_NAME,"%s","<033>&a440h+0V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      Writefile(L_FILE_NAME,"%s",cppendorse1:name)
+      L_line_counter=L_line_counter+1
+
+      Writefile(L_FILE_NAME,"%s","<033>&a3000h+0V")
+      Writefile(L_FILE_NAME,"%s",cppendorse1:address)
+      Writefile(L_FILE_NAME,"%s","<033>&a3000h+120V")
+      writefile(l_file_name,"%s",trun(cppendorse1:city) + ", " + trun(cppendorse1:str_state) + " ")
+      writefile(l_file_name,"%s",str(cppendorse1:str_zipcode,"99999-9999"))
+      Writefile(L_FILE_NAME,"%s","<NL>")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a200h7200V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+      Writefile(L_FILE_NAME,"%s",Trun(sfsoptend:form_print))
+      Writefile(L_FILE_NAME,"%s"," ")
+      Writefile(L_FILE_NAME,"%s",sfsoptend:edition_print)
+      L_line_counter=L_line_counter+1
+
+      L_STRING = "Copyright, Insurance Services Office, Inc., 1999"
+      L_FONT = L_ARIAL_9
+      L_PITCH_HALF = 4.5
+      L_PITCH_FULL = 9
+      L_VERTICAL_POS = "7200"
+      L_HORIZONTAL_POS = "2880"
+      Include "center3.pro"
+
+      Writefile(L_FILE_NAME,"%s","<033>&a5000h7200V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+      Writefile(L_FILE_NAME,"%s","Page ")
+      Writefile(L_FILE_NAME,"%n",L_page_counter)
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      L_page_counter=L_page_counter+1
+
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h7137V<033>*c53h4v0P") --top horizontal line
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h+0V<033>*c2a27b0P")  --left vertical line
+      Writefile(L_FILE_NAME,"%s","<033>&a5553h+0V<033>*c2a27b0P")  --right vertical line
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h7200V<033>*c57h4v0P")  --bottom horizontal line
+      Writefile(L_FILE_NAME,"%s","<FF>")
+    }
+  Next SFPEND
+}
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

@@ -1,0 +1,1095 @@
+%%                                                            
+/*
+Date Written: December 13, 2001
+
+Name: mpl15_072006.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+12/13/2001             DWR              Modified form for MSO
+02/19/2002             DWR              Changes per Farmers request
+03/21/2002             DWR              Additional Farmers Changes
+10/04/2002             RMG              Fixed line counter FF kickers
+08/03/2005             DWR              Added code to support old version as
+                                        well as print new based on Salem's
+                                        policy eff date
+12/12/2006             JLB              New edition changes
+===========================
+*/
+
+Program
+  Name = "imsmpl15_072006";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[18] = "imsmpl15_072006.cq";
+ String L_COPY_NAME[20] ;
+ String L_FORM_PRINT[15] ;
+ String L_EDITION_PRINT[10] ;
+ String L_INFILE[18]="imsmpl15_072006.in";
+ String L_READ_INFILE[25];
+ String L_READ;
+ String l_enter[1];
+ string l_font ;
+-- String l_company_id[10];
+ String L_SFPLOCATION_ZIP;
+ Unsigned ascii number l_max_lines=60;
+ Unsigned Ascii Number L_YEAR[4];
+ Unsigned Ascii number L_LINE_OF_BUSINESS[4];
+ Unsigned ascii number l_found[1];
+ Unsigned Ascii Number L_ITEM_COUNTER;
+ Unsigned Ascii Number L_STATE[2]=0;
+ Unsigned Ascii Number L_LOOP;
+ Unsigned Ascii Number L_LINE_COUNTER;
+ Unsigned Ascii Number L_PAGE_NUMBER = 1;
+ Unsigned Ascii Number L_NUM_LINES_TO_PRINT;
+ Unsigned Ascii Number L_LINES_FIRST_PAGE = 40;
+-- Unsigned Ascii Number L_STATE[2];
+
+ wdate L_EFF_DATE;
+
+ Number L_BREAK = 40;       --number of characters printed before break
+ Number L_BREAK_POINT;      --where the break occurs and newline is inserted
+ Number L_ITEM_NO = 0;
+-- Number L_MAX_LINES = 60;
+
+   Include "swsut100.var"
+   Include "swsut200.var"
+   Include "swsut300.var"
+   Include "line_spacing.var"
+   Include "csfonts.inc"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+                                --characters & store result in l_read_infile
+Update
+
+Access impendorse,
+       Set impendorse:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           impendorse:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           impendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic;
+
+Access imppersim,
+       Set imppersim:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           imppersim:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           imppersim:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic;
+
+Access SFPLOCATION,
+       Set SFPLOCATION:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+           SFPLOCATION:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+           SFPLOCATION:END_SEQUENCE = SFPPRINT1:END_SEQUENCE ,Generic;
+
+Access SFPNAME,
+   Set SFPNAME:POLICY_NO       = SFPPRINT1:POLICY_NO ,
+       SFPNAME:POL_YEAR        = SFPPRINT1:POL_YEAR ,
+       SFPNAME:END_SEQUENCE    = SFPPRINT1:END_SEQUENCE , Generic;
+
+Include "swsut100.inc"
+I_CODE = "MPL15"
+Include "swsut200.inc"
+Include "swsut300.inc"
+
+While impendorse:POLICY_NO    = SFPPRINT1:POLICY_NO And
+      impendorse:POL_YEAR     = SFPPRINT1:POL_YEAR And
+      impendorse:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+  {
+    L_STATE            = imppersim:STATE
+    L_COMPANY_ID       = sfpname:COMPANY_ID
+    L_LINE_OF_BUSINESS = sfpname:LINE_OF_BUSINESS
+
+    Access SFSOPTEND,
+       Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+           SFSOPTEND:STATE            = L_STATE,
+           SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+           SFSOPTEND:CODE             = I_CODE, generic
+
+     While SFSOPTEND:COMPANY_ID       = L_COMPANY_ID and
+           SFSOPTEND:STATE            = L_STATE and
+           SFSOPTEND:LINE_OF_BUSINESS = l_LINE_OF_BUSINESS and
+           SFSOPTEND:CODE             = I_CODE
+
+       {  --start of sfsoptend check
+         If (sfpname:eff_date >= sfsoptend:eff_date and
+            (sfpname:eff_date < sfsoptend:exp_date or
+             sfsoptend:exp_date = 0)) then
+           {
+             l_eff_date = sfsoptend:eff_date
+           }
+         next sfsoptend
+       }
+
+
+    Access SFSOPTEND,
+       Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+           SFSOPTEND:STATE            = L_STATE,
+           SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+           SFSOPTEND:CODE             = I_CODE,
+           SFSOPTEND:EFF_DATE         = L_EFF_DATE, exact
+
+    If impendorse:CODE = I_CODE Then
+      {
+        If sfsoptend:edition <> 0 then
+          {
+            Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+             Writefile(L_FILE_NAME,"%s","<033>&a420h7080V")
+            Writefile(L_FILE_NAME,"%s","Ed. ")
+            Writefile(L_FILE_NAME,"%n",sfsoptend:edition)
+          }
+
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","<033>&a420h7200V")
+        Writefile(L_FILE_NAME,"%s",l_copyright_6)
+        Writefile(L_FILE_NAME,"%s"," ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s",sfsoptend:COPYRIGHT)
+        Writefile(L_FILE_NAME,"%s","<033>&a200h+120V")
+
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_12)
+        Writefile(L_FILE_NAME,"%s","<033>&a4500h120V")
+        Writefile(L_FILE_NAME,"%s",Trun(SFSOPTEND:FORM_PRINT))
+        Writefile(L_FILE_NAME,"%s"," ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+        Writefile(L_FILE_NAME,"%s",SFSOPTEND:EDITION_PRINT)
+        Writefile(L_FILE_NAME,"%s","<NL>")
+
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                  "SCHEDULED PROPERTY - SECTION I","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a90h+0V",
+                 "This endorsement provides comprehensive type ",
+                 "coverage for those classes that show a limit. Such ",
+                 "limits, the schedule of items, and","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a90h+0V",
+               "premiums may be shown in this endorsement, elsewhere",
+               " in this policy, or in a schedule filed with us.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+               "Property specifically described and covered by this ",
+               "endorsement (MPL 15) is not otherwise ",
+               "covered under Section I of this policy. ","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                        "The provisions of this endorsement apply only ",
+                        "when the endorsement number is listed in the Declarations. ","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                        "Except as provided below, all ",
+                        "other provisions in this policy are unchanged. ")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a90h+20V<033>*c5800h8v0P",
+                        "<NL>","<NL>")           --Horizontal line
+        L_LINE_COUNTER =L_LINE_COUNTER +2
+
+        Writefile(L_FILE_NAME,"%s%s%s%n%s%s",L_ARIAL_9,"<033>&a90h+0V","Policy # ",
+                         impendorse:POLICY_NO,"<NL>","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +2
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+0V",
+                        "1.","<033>&a250h+0V","SCHEDULE","<NL>","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +2
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+0V",
+                        "PREMIUM","<033>&a1280h+0V","LIMIT","<033>&a3000h+0V",
+                        "CLASS OF PROPERTY","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","<033>&a90h+0V")
+        Writefile(L_FILE_NAME,"%s","$")
+        Writefile(L_FILE_NAME,"%s",L_LETTER_GOTHIC_BOLD_10)
+        Writefile(L_FILE_NAME,"%s",Str(impendorse:PREMIUM[1],"ZZZ,ZZZ,ZZZ"))
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","<033>&a900h+0V")
+        Writefile(L_FILE_NAME,"%s","$")
+        Writefile(L_FILE_NAME,"%s",L_LETTER_GOTHIC_BOLD_10)
+        Writefile(L_FILE_NAME,"%s",Str(impendorse:LIMIT[1],"ZZ,ZZZ,ZZZ"))
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","<033>&a2000h+0V")
+        Writefile(L_FILE_NAME,"%s","A.")
+        Writefile(L_FILE_NAME,"%s","<033>&a2200h+0V")
+        Writefile(L_FILE_NAME,"%s","Cameras - Including Film, Projection Machines, ")
+        Writefile(L_FILE_NAME,"%s","and Related Articles")
+        Writefile(L_FILE_NAME,"%s","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,
+                        "<033>&a90h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:PREMIUM[2],"ZZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a900h+0V","$",L_LETTER_GOTHIC_BOLD_10 ,
+                        Str(impendorse:LIMIT[2],"ZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a2000h+0V","B.","<033>&a2200h+0V",
+                        "Coin Collections","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,
+                        "<033>&a90h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:PREMIUM[3],"ZZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a900h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:LIMIT[3],"ZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a2000h+0V","C.","<033>&a2200h+0V",
+                        "Furs - Including Fur Trimmed Articles","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,
+                        "<033>&a90h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:PREMIUM[4],"ZZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a900h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:LIMIT[4],"ZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a2000h+0V","D.","<033>&a2200h+0V",
+                        "Golfer's Equipment - Other than Golf Balls and ",
+                        "Golf Carts","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,
+                        "<033>&a90h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:PREMIUM[5],"ZZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a900h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:LIMIT[5],"ZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a2000h+0V","E.","<033>&a2200h+0V","Jewelry","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,
+                        "<033>&a90h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:PREMIUM[6],"ZZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a900h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:LIMIT[6],"ZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a2000h+0V","F.","<033>&a2200h+0V",
+                        "Musical Instruments - Including Related Articles","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,
+                        "<033>&a90h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:PREMIUM[7],"ZZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a900h+0V","$",L_LETTER_GOTHIC_BOLD_10 ,
+                        Str(impendorse:LIMIT[7],"ZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a2000h+0V","G.","<033>&a2200h+0V",L_ARIAL_ITALIC_9,
+                        "Silverware","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,
+                        "<033>&a90h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:PREMIUM[8],"ZZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a900h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:LIMIT[8],"ZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a2000h+0V","H.","<033>&a2200h+0V",
+                        "Sporting Equipment","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,
+                        "<033>&a90h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(impendorse:PREMIUM[9],"ZZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a900h+0V","$",L_LETTER_GOTHIC_BOLD_10 ,
+                        Str(impendorse:LIMIT[9],"ZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a2000h+0V","I.","<033>&a2200h+0V",
+                        "Stamp Collections","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s",L_ARIAL_9,
+                        "<033>&a90h+0V","$",L_LETTER_GOTHIC_BOLD_10,
+                        Str(PREMIUM[10],"ZZZ,ZZZ,ZZZ"),L_ARIAL_9,
+                        "<033>&a900h+0V","$",L_LETTER_GOTHIC_BOLD_10 ,
+                        Str(impendorse:LIMIT[10],"ZZ,ZZZ,ZZZ"))
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a2000h+0V","J.",
+                        "<033>&a2200h+0V",
+                        "Fine Arts - Describe Location if Not Located at the ",
+                        L_ARIAL_ITALIC_9,"Residence Premises","<NL>","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +3
+
+
+                          --BEGINNING OF DESCRIPTION SECTION
+
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a290h+0V",
+                        "ITEM NO.","<033>&a1030h+0V","LIMIT","<033>&a2200h+0V",
+                        "ARTICLE","<033>&a3600h+0V","DESCRIPTION","<NL>","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +2
+
+        Writefile(L_FILE_NAME,"%s",l_push)
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a900h6600V",
+                        "Jewelry:  ",L_ARIAL_9,"If the description of an item ",
+                        "of jewelry is followed or preceded by a (V), a reduced rate","<NL>")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a900h+0V",
+                        "applies based on ",L_ARIAL_ITALIC_9,"your ",
+                        L_ARIAL_9,"ongoing ",
+                        "representation that such item is customarily kept in a bank vault or like","<NL>")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a900h+0V",
+                        "premises for safekeeping.")
+        L_LINE_COUNTER =L_LINE_COUNTER + 3
+
+        Writefile(L_FILE_NAME,"%s",l_pop)
+
+        Access impdesc,
+           Set impdesc:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+               impdesc:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+               impdesc:END_SEQUENCE = SFPPRINT1:END_SEQUENCE ,
+               impdesc:PREM_NO      = impendorse:PREM_NO ,
+               impdesc:BUILD_NO     = impendorse:BUILD_NO ,
+               impdesc:CODE         = I_CODE, Generic
+
+        While  impdesc:POLICY_NO    = SFPPRINT1:POLICY_NO  And
+               impdesc:POL_YEAR     = SFPPRINT1:POL_YEAR And
+               impdesc:END_SEQUENCE = SFPPRINT1:END_SEQUENCE And
+               impdesc:CODE         = I_CODE
+          {
+            L_START_PRINT = 1
+            L_END_PRINT = Len(Trun(impdesc:DESCRIPTION))
+            L_BREAK = 40
+            L_BREAK_POINT = L_BREAK
+            L_LOOP = 1
+            L_NUM_LINES_TO_PRINT = L_END_PRINT Div L_BREAK - 15
+            L_ITEM_NO = L_ITEM_NO + 1
+
+            If (L_MAX_LINES - L_LINE_COUNTER) < L_NUM_LINES_TO_PRINT Then
+              {
+                Writefile(L_FILE_NAME,"%s","<FF>")
+                L_PAGE_NUMBER = L_PAGE_NUMBER + 1
+                L_LINE_COUNTER = 0
+
+                Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+                Writefile(L_FILE_NAME,"%s","<033>&a290h+0V")
+                Writefile(L_FILE_NAME,"%s","ITEM #")
+                Writefile(L_FILE_NAME,"%s","<033>&a1030h+0V")
+                Writefile(L_FILE_NAME,"%s","LIMIT")
+                Writefile(L_FILE_NAME,"%s","<033>&a2200h+0V")
+                Writefile(L_FILE_NAME,"%s","ARTICLE")
+                Writefile(L_FILE_NAME,"%s","<033>&a3600h+0V")
+                Writefile(L_FILE_NAME,"%s","DESCRIPTION")
+                Writefile(L_FILE_NAME,"%s","<NL>")
+                Writefile(L_FILE_NAME,"%s","<NL>")
+                L_LINE_COUNTER =L_LINE_COUNTER +2
+              }
+            Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+            Writefile(L_FILE_NAME,"%s","<033>&a290h+0V")
+            Writefile(L_FILE_NAME,"%n",L_ITEM_NO)
+            Writefile(L_FILE_NAME,"%s","<033>&a1030h+0V")
+            Writefile(L_FILE_NAME,"%s","$ ")
+            Writefile(L_FILE_NAME,"%s",L_LETTER_GOTHIC_BOLD_10)
+            Writefile(L_FILE_NAME,"%s",Str(impdesc:LIMIT,"ZZZ,ZZZ,ZZZ"))
+            Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+            Writefile(L_FILE_NAME,"%s","<033>&a2200h+0V")
+            Writefile(L_FILE_NAME,"%s",impdesc:ARTICLE)
+            L_FONT             = L_ARIAL_9
+            L_V_POSITION       = "+0"
+            L_H_POSITION       = "3600"
+            L_MAX_CHAR = 30
+            L_MAX_LINES = 60
+            if impdesc:jewelry_vaulted = 1 then
+                L_CHARACTER_STRING = Trun(impdesc:DESCRIPTION) + "(V)"
+            else
+                L_CHARACTER_STRING = Trun(impdesc:DESCRIPTION)
+
+            include "line_spacing.inc"
+
+            Writefile(L_FILE_NAME,"%s","<NL>")
+            L_LINE_COUNTER =L_LINE_COUNTER +1
+
+            Next impdesc
+          }
+
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","<FF>")
+        L_PAGE_NUMBER = L_PAGE_NUMBER + 1
+        L_LINE_COUNTER = 1
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+
+                             --***End of page 1***
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a1700h+40V",
+                        "2. ADDITIONAL POLICY PROVISIONS - ALL CLASSES","<NL>")
+        L_LINE_COUNTER = L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s",l_push)
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+120V",
+                        "A.","<033>&a250h+0V","Covered Causes of Loss")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a250h+120V",
+                        "Any fortuitous direct physical loss not otherwise excluded by")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a250h+120V",
+                        "this policy.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+160V",
+                        "B.","<033>&a250h+0V","Property Covered")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a250h+120V",
+                        "Section I coverage is provided for the property shown in the")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a250h+120V",
+                        "schedule.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+160V",
+                        "C.","<033>&a250h+0V","Section I D - Losses Not Insured")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a250h+120V",
+                        "Exclusion 5 and items A, B, C, D, E, and F of Exclusion 11")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a250h+120V",
+                        "apply. The only other exclusions that apply to property")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a250h+120V",
+                        "covered by this endorsement (MPL 15) are those specified")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a250h+120V",
+                        "under Section 3. Additional Policy Provisions - Specific")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a250h+120V",
+                        "Classes in this endorsement.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+160V",
+                        "D.","<033>&a250h+0V","Section I E - Conditions")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+120V",
+                        "1.","<033>&a420h+0V","Limit of Liability Per Loss")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+120V",
+                        "(a)",L_ARIAL_9,"<033>&a590h+0V","The limit per class is ",
+                        L_ARIAL_ITALIC_9,"our ",L_ARIAL_9,
+                        "maximum limit on all")
+        L_LINE_COUNTER = L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "property under the class.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+160V",
+                        "(b)",L_ARIAL_9,"<033>&a590h+0V","The limit per item is ",
+                        L_ARIAL_ITALIC_9,"our ",L_ARIAL_9,
+                        "maximum limit for such")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "item.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+160V",
+                        "2.","<033>&a420h+0V","Deductible")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+120V",
+                        "The Section I deductible does not apply to property")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+120V",
+                        "covered by this endorsement.")
+
+        Writefile(L_FILE_NAME,"%s",l_pop)
+
+                --***Start of column 2 top half of form page 2***
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h+120V",
+                        "3.","<033>&a3400h+0V","Newly Acquired Property")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "Newly acquired property of a class covered by this")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "endorsement is also covered up to $20,000 or 20% of the")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "limit on the class, whichever is less. But, coverage applies")
+        L_LINE_COUNTER = L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "only if:")
+        L_LINE_COUNTER = L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+120V",
+                        "(a)",L_ARIAL_9,"<033>&a3600h+0V","reported to ",
+                        L_ARIAL_ITALIC_9,"us ",L_ARIAL_9,
+                        "within 30 days (90 days on fine arts)")
+        L_LINE_COUNTER = L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3600h+120V",
+                        "after acquisition of such property; and")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+160V",
+                        "(b)",L_ARIAL_9,"<033>&a3600h+0V",
+                        "the required premium is paid, calculated from the")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3600h+120V",
+                        "date of acquisition.")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a3400h+160V",
+                        "We ",L_ARIAL_9,"have the option to continue coverage beyond 30 days")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "(90 days for fine arts).")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h+160V","4.",
+                        "<033>&a3400h+0V","Recovery Condition")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "Loss is not recoverable under this policy if paid by others.")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a3400h+160V",
+                        "The insurance ceases on a specific article if ",
+                        L_ARIAL_ITALIC_9,"we ",L_ARIAL_9,"pay for")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "total loss on the article. ",
+                        L_ARIAL_ITALIC_9,"You ",L_ARIAL_9,"may receive a return of any")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "unearned premium or apply the amount to replacement")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "insurance.")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3000h+160V",
+                        "E.","<033>&a3200h+0V","Optional Endorsement")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h+120V",
+                        "Replacement Option - Endorsement MPL 49")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3200h+120V",
+                        "If endorsement MPL 49 is listed in the Declarations, property")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3200h+120V",
+                        "covered under this endorsement (MPL 15) is subject to")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3200h+120V",
+                        "replacement coverage provisions.  Replacement coverage does")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3200h+120V",
+                        "not apply to fine arts.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+             --******************************************************************
+
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a1500h+60V",
+                        "3. ADDITIONAL POLICY PROVISIONS - SPECIFIC CLASSES","<NL>")
+        L_LINE_COUNTER = L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s",l_push)
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a90h+60V",
+                        "A.","<033>&a250h+0V","Coin and Stamp Collections")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+120V",
+                        "1.","<033>&a420h+0V","Property Covered")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+120V",
+                        "Property that is part of a bona fide coin or stamp")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+120V",
+                        "collection.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+120V",
+                        "(a)","<033>&a590h+0V","Coin Collections")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "Includes the following owned by ",L_ARIAL_ITALIC_9,
+                        "you ",L_ARIAL_9,"or in ",L_ARIAL_ITALIC_9,"your ")
+
+        Writefile(L_FILE_NAME,"%s%s%s","<033>&a590h+120V",
+                         L_ARIAL_9,"custody: bank notes, coins, medals, paper money,")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "tokens for money, and other numismatic property.")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "Also covered are cabinets, cards, coin albums,")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "containers, frames, mountings, and mounting pages")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "used with the collection.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+160V",
+                        "(b)","<033>&a590h+0V","Stamp Collections")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "Includes the following owned by ",L_ARIAL_ITALIC_9,
+                        "you ",L_ARIAL_9,"or in ",L_ARIAL_ITALIC_9,"your")
+
+        Writefile(L_FILE_NAME,"%s%s%s","<033>&a590h+120V",
+                        L_ARIAL_9,"custody: due, envelope, match, medicine, official,")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "postal, and revenue stamps, covers, essays, locals,")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "proofs, and reprints. Also covered are mountings,")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "mounting pages, and stamp books used with the")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "collection and other philatelic property.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+160V",
+                        "2.","<033>&a420h+0V",
+                        "Property Covered on a Blanket Basis")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+120V",
+                        "Loss to property covered on a blanket basis is covered")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+120V",
+                        "subject to the following limits, unless reduced limits are")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a420h+120V",
+                        "more specifically described in this endorsement:")
+
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_bold_9,"<033>&a420h+120V",
+                        "(a)","<033>&a590h+0V","Coin Collections")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "$2,000 per occurrence, but not more than $300 per")
+                         L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "numismatic article.")
+                         L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+120V",
+                        "(b)","<033>&a590h+0V","Stamp Collections","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a590h+0V",
+                        "$2,000 per occurrence, but not more than $300 per","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+
+        Writefile(L_FILE_NAME,"%s",l_pop)
+
+
+        --*****Start of second column under item 3. Add Pol Provisions*****
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+60V",
+                        "any article, block, card, cover, frame, pair, set, sheet, ","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "or strip.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h+40V",
+                        "3.","<033>&a3400h+0V","Section I D - Losses Not Insured",
+                        "<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                        "Section I D is extended to include the following","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                        "provisions with regard to property covered under this ","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                        "section of this endorsement:","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+0V",
+                        "(a)","<033>&a3600h+0V","Disappearance","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a3600h+0V",
+                        "We ",L_ARIAL_9,"do not cover loss by disappearance of individual",
+                        "<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "articles covered on a blanket basis, unless such are","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "mounted on a page and the entire page is missing.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+40V",
+                        "(b)","<033>&a3600h+0V","Transit","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a3600h+0V",
+                        "We ",L_ARIAL_9,"do not cover loss of property in the mail (other",
+                        "<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                      "than registered mail), in the custody of a","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "transportation company, or left in a vehicle.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+40V",
+                        "(c)","<033>&a3600h+0V","Wear and Tear","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "The following is added to exclusion 11:","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a3600h+40V",
+                        "We ",L_ARIAL_9,"do not cover loss to property caused by creasing,",
+                        "<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "denting, fading, handling, tearing, thinning, or","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "transfer of color.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +2
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h+40V",
+                        "4.","<033>&a3400h+0V","Optional Endorsement")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+120V",
+                        "Loss to Property in Transit for Coins and Stamps -")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+120V",
+                        "Endorsement MPL 93")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "If endorsement MPL 93 is listed in the Declarations, loss")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3400h+120V",
+                        "to property left in a vehicle is covered.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_8,"<033>&a5000h6900V",
+        Trun(SFSOPTEND:FORM_PRINT)," ",L_ARIAL_8,SFSOPTEND:EDITION_PRINT)
+
+        Writefile(L_FILE_NAME,"%s%s%s%n%s",L_ARIAL_9,"<033>&a2800h7000V",
+                        "- ",L_PAGE_NUMBER," -")
+
+        Writefile(L_FILE_NAME,"%s%s",L_ARIAL_9,"<FF>")
+        L_PAGE_NUMBER = L_PAGE_NUMBER + 1
+
+
+                        --******End of page 2******
+
+        Writefile(L_FILE_NAME,"%s",l_push)
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a250h+160V",
+                        "B.","<033>&a420h+0V","Fine Arts")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+120V",
+                        "1.","<033>&a590h+0V","Section I D - Losses Not Insured")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "Section I D is extended to include the following")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "provisions with regard to property covered under this ")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a590h+120V",
+                        "section of this endorsement:")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a590h+120V",
+                        "(a)","<033>&a760h+0V","Breakage")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a760h+120V",
+                        "We ",L_ARIAL_9,"do not cover loss by breakage of art glass")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "windows, bric-a-brac, glassware, marble and ")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "porcelain items, statuary, and similar sorts of fragile")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "articles.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a760h+160V",
+                        "But, ",L_ARIAL_ITALIC_9,"we ",L_ARIAL_9,
+                        "do cover damage caused by collision, ")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "derailment, or overturn of vehicles; earthquake; ")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "explosion; fire; flood; theft; vandalism; wind or hail.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a590h+160V",
+                        "(b)","<033>&a760h+0V","Packing")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a760h+120V",
+                        "We ",L_ARIAL_9,"do not cover loss caused by packing or unpacking")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "of articles, unless performed by qualified competent")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "packers.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a590h+160V",
+                        "(c)","<033>&a760h+0V","Repairing")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a760h+120V",
+                        "We ",L_ARIAL_9,"do not cover loss by refinishing, repairing, ")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "restoration, or retouching.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a420h+160V",
+                        "2.","<033>&a590h+0V","Section I E - Conditions")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a590h+120V",
+                        "(a)","<033>&a760h+0V","Loss Valuation","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+12V",
+                        "The limits specified in this endorsement are agreed to")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "be the values of the articles to the extent that")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "documentation supporting such values has been filed")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "with ",L_ARIAL_ITALIC_9,"us.")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+160V",
+                        "Conditions 2.A.1. ")
+
+        Writefile(L_FILE_NAME,"%s","and 2.D.1. of Section I E do not")
+
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "apply to any Fine Arts subject to this valuation")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "clause.")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a590h+160V",
+                        "(b)","<033>&a760h+0V",
+                        "Territory")
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a760h+120V",
+                        "<033>&a+0h+20V",L_BULLET_6,L_ARIAL_9,
+                        "<033>&a930h-20V","This insurance applies to the covered property")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a930h+120V",
+                        "only while at the locations listed in this policy or")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a930h+120V",
+                        "while temporarily elsewhere within the 50 states")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a930h+120V",
+                        "of the United States, District of Columbia, ")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a930h+120V",
+                        "Puerto Rico, and Canada.")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s",L_ARIAL_9,"<033>&a930h+160V",
+                        "But, at no time do ",L_ARIAL_ITALIC_9,"we ",L_ARIAL_9,
+                        "cover property while on")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a930h+120V",
+                        "exhibition at fairs or expositions unless such")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a930h+120V",
+                        "premises are listed in this policy.")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        --***********************
+
+        Writefile(L_FILE_NAME,"%s",l_pop)
+
+
+        --*****Start of second column page 3*****
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_9,"<033>&a3600h+120V",
+                        L_BULLET_6,L_ARIAL_9,"<033>&a3800h-20V",
+                        "Unless another location is listed in this policy,")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_9,"<033>&a3800h+120V",
+                        "this insurance is provided subject to",L_ARIAL_ITALIC_9," your")
+
+        Writefile(L_FILE_NAME,"%s%s%s",L_ARIAL_9,"<033>&a3800h+120V",
+                        "ongoing agreement that all the covered property")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_9,"<033>&a3800h+120V",
+                        "is customarily kept at the ",L_ARIAL_ITALIC_9,
+                        "residence premises." )
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h+160V",
+                        "3.","<033>&a3400h+0V","Optional Endorsement","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+0V",
+                        "Coverage for Breakage - Endorsement MPL 90","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                        "If endorsement MPL 90 is listed in the Declarations, "
+                        ,"<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                        "breakage by any cause is covered.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+40V",
+                        "Indicate in the schedule which articles are covered for","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                        "breakage.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3000h+40V",
+                        "C.","<033>&a3200h+0V","Musical Instruments","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h+0V",
+                        "1.","<033>&a3400h+0V","Section I D - Losses Not Insured",
+                        "<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                        "Section I D is extended to include the following","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                        "provisions with regard to property covered under this ","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3400h+0V",
+                        "section of this endorsement:","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+0V",
+                        "(a)","<033>&a3600h+0V","Electrical Breakdown","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a3600h+0V",
+                        "We ",L_ARIAL_9,"do not cover loss by electrical damage to",
+                        "<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "electronic instruments.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+40V",
+                        "(b)","<033>&a3600h+0V","Played for Pay","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a3600h+0V",
+                        "We ",L_ARIAL_9,"do not cover loss to musical instruments played","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "for a fee or other payment.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+40V",
+                        "(c)","<033>&a3600h+0V","Repairing","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_ITALIC_9,"<033>&a3600h+0V",
+                        "We ",L_ARIAL_9,"do not cover loss by refinishing, repairing, ","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "restoration, or servicing.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3200h+40V",
+                        "2.","<033>&a3400h+0V","Optional Endorsements",
+                        "<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+0V",
+                        "(a)","<033>&a3600h+0V",
+                        "Coverage for Musical Instruments - Endorsement","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3600h+0V",
+                        "MPL 91","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "If endorsement MPL 91 is listed in the Declarations,","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "loss to musical instruments played for a fee or other","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "payment is covered.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3400h+40V",
+                        "(b)","<033>&a3600h+0V",
+                        "Electrical Damage Coverage for Musical ","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_BOLD_9,"<033>&a3600h+0V",
+                        "Instruments - Endorsement MPL 92","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "If endorsement MPL 92 is listed in the Declarations,","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s",L_ARIAL_9,"<033>&a3600h+0V",
+                        "loss by electrical damage is covered.","<NL>")
+        L_LINE_COUNTER =L_LINE_COUNTER +1
+
+        Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL_8,"<033>&a5000h6900V",
+                        Trun(SFSOPTEND:FORM_PRINT)," ",L_ARIAL_8,
+                        SFSOPTEND:EDITION_PRINT)
+
+        Writefile(L_FILE_NAME,"%s%s%s%n%s%s",L_ARIAL_9,
+                        "<033>&a2800h7000V","- ",L_PAGE_NUMBER, " -",
+                        "<FF>")
+
+
+      }--If impendorse
+    Next impendorse
+  }
+Screen Exit
+ Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+ Closefile(L_FILE_NAME)
+End

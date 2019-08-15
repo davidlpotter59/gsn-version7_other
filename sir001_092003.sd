@@ -1,0 +1,287 @@
+%%
+/*
+Date Written: May 11, 2009
+
+Name: sir001_092003.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+05/11/2009            JLB             New form sir001_092003
+
+===========================
+*/
+
+Program
+  Name = "sir001_092003";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[16] = "sir001_092003.cq";
+ String l_company_id[10];
+ Unsigned ascii number L_PAGE_COUNTER,
+                       l_max_lines,
+                       l_form[1],
+                       l_state[2]=0,
+                       l_line_of_business[4],
+                       l_line_counter;
+
+ wdate l_eff_date;
+
+   Include "csfonts.inc"
+   Include "swsut100.var"
+   Include "swsut200.var"
+ --Include "swsut300.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+Access SFPNAME,
+   Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access scpcontractor,
+   Set scpcontractor:POLICY_NO     = SFPPRINT1:POLICY_NO,
+       scpcontractor:POL_YEAR      = SFPPRINT1:POL_YEAR,
+       scpcontractor:END_SEQUENCE  = SFPPRINT1:END_SEQUENCE, Generic
+
+   Include "swsut100.inc"
+   I_CODE = "SIR001"
+   Include "swsut200.inc"
+
+l_page_counter = 1
+
+        l_state            = scpcontractor:state
+        L_COMPANY_ID       = sfpname:COMPANY_ID
+        L_LINE_OF_BUSINESS = sfpname:LINE_OF_BUSINESS
+
+        Access SFSEND,
+           Set SFSEND:COMPANY_ID       = L_COMPANY_ID,
+               SFSEND:STATE            = L_STATE,
+               SFSEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+               SFSEND:FORM             = L_FORM,
+               SFSEND:CODE             = I_CODE, generic
+
+         While SFSEND:COMPANY_ID       = L_COMPANY_ID and
+               SFSEND:STATE            = L_STATE and
+               SFSEND:LINE_OF_BUSINESS = l_LINE_OF_BUSINESS and
+               SFSEND:FORM             = L_FORM AND
+               SFSEND:CODE             = I_CODE
+
+           {  --start of SFSEND check
+             If (sfpname:eff_date >= SFSEND:eff_date and
+                (sfpname:eff_date < SFSEND:exp_date or
+                 SFSEND:exp_date = 0)) then
+               {
+                 l_eff_date = SFSEND:eff_date
+               }
+             next SFSEND
+           }
+
+        Access SFSEND,
+           Set SFSEND:COMPANY_ID       = L_COMPANY_ID,
+               SFSEND:STATE            = L_STATE,
+               SFSEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+               SFSEND:FORM             = L_FORM,
+               SFSEND:CODE             = I_CODE,
+               SFSEND:EFF_DATE         = L_EFF_DATE, exact
+
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_12)
+        Writefile(L_FILE_NAME,"%s","<033>&a4300h120V")
+        Writefile(L_FILE_NAME,"%s","SIR 001")
+        Writefile(L_FILE_NAME,"%s"," ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+        Writefile(L_FILE_NAME,"%s","09 03")
+        Writefile(L_FILE_NAME,"%s","<033>&a200h+120V")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a200h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_BOLD_9)
+        Writefile(L_FILE_NAME,"%s","SOFTWARE LOSS ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+        Writefile(L_FILE_NAME,"%s","EXCLUSION ")
+        Writefile(L_FILE_NAME,"%s","<033>&a+30h-30V")
+        Writefile(L_FILE_NAME,"%s","<033>*c105h8v0P")
+        Writefile(L_FILE_NAME,"%s","<033>&a+135h+30V")
+        Writefile(L_FILE_NAME,"%s"," PART I")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","This endorsement establishes an exclusion for software loss.")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+        Writefile(L_FILE_NAME,"%s","The provisions of this endorsement apply only when the endorsement number is listed in the Declarations.  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a200h+130V")
+        Writefile(L_FILE_NAME,"%s","Except as provided below, all other provisions in this policy are unchanged.  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a200h+40V")
+        Writefile(L_FILE_NAME,"%s","<033>*c5200h8v0p") --Horizontal line
+
+        Writefile(L_FILE_NAME,"%s","<033>&a200h+240V")
+        Writefile(L_FILE_NAME,"%s","COVERAGE MODIFICATION")
+
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","<033>&a1150h+120V")
+        Writefile(L_FILE_NAME,"%s","We ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","do not provide insurance for any loss, damage, cost or expense, whether preventative, remedial,")
+        Writefile(L_FILE_NAME,"%s","<033>&a1150h+120V")
+        Writefile(L_FILE_NAME,"%s","replacement, statutorily mandated or otherwise, directly or indirectly arising out of, resulting from, or  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a1150h+120V")
+        Writefile(L_FILE_NAME,"%s","involving a ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","software loss.")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1150h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","This exclusion does not apply to direct physical loss or damage to tangible property that ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","you ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","do not")
+        Writefile(L_FILE_NAME,"%s","<033>&a1150h+120V")
+        Writefile(L_FILE_NAME,"%s","manufacture, that results from a ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","software loss ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s",".  For purposes of this endorsement, programs, computer  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a1150h+120V")
+        Writefile(L_FILE_NAME,"%s","software or operating systems, programming instructions and data are not tangible property.  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a200h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","GLOSSARY  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a1150h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","For the purposes of this endorsement, the following definitions apply:  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1150h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","A.")
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","Software loss ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","means loss of or damage to any program(s), computer software or operating  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+120V")
+        Writefile(L_FILE_NAME,"%s","system(s), programming instruction(s), or data arising out of or resulting from any failure,")
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+120V")
+        Writefile(L_FILE_NAME,"%s","malfunction, deficiency, fault, ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","virus")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s",", deletion or corruption.")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","Software loss ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","includes but is not limited to loss or damage resulting from any authorized or")
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+120V")
+        Writefile(L_FILE_NAME,"%s","unauthorized access in or to any:")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","1.")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Computer, computer system, computer software or operating systems, computer hardware,")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+120V")
+        Writefile(L_FILE_NAME,"%s","communication system,  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","2.")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Computer memory, computer chip, microchip,  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","3.")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Data processing equipment, file server, networking equipment, integrated circuit or similar")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+120V")
+        Writefile(L_FILE_NAME,"%s","device in computer equipment,  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","4.")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Program, programming instructions, or data.  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1150h+180V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","B.")
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","Virus ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","means software, data or code that affects the operation or functionality of any:")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+120V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","1.")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Computer, computer system, computer software or operating systems, computer hardware,")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+120V")
+        Writefile(L_FILE_NAME,"%s","communication system,  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","2.")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Computer memory, computer chip, microchip,  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","3.")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Data processing equipment, file server, networking equipment, integrated circuit or similar")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+120V")
+        Writefile(L_FILE_NAME,"%s","device in computer equipment,  ")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a1350h+150V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_9)
+        Writefile(L_FILE_NAME,"%s","4.")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+0V")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","Program, programming instructions, or data, including but not limited to, any destructive")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+120V")
+        Writefile(L_FILE_NAME,"%s","program, computer code, ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","virus")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s",", worm, logic bomb, denial of service attack, smurf attack,  ")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+120V")
+        Writefile(L_FILE_NAME,"%s","vandalism, trojan horse, or any other data introduced into any electronic system causing")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+120V")
+        Writefile(L_FILE_NAME,"%s","deletion, destruction, degradation, corruption, malfunction or compromise to ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_italic_9)
+        Writefile(L_FILE_NAME,"%s","your ")
+        Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+        Writefile(L_FILE_NAME,"%s","data, ")
+        Writefile(L_FILE_NAME,"%s","<033>&a1550h+120V")
+        Writefile(L_FILE_NAME,"%s","software or electronic business systems.")
+
+        Writefile(L_FILE_NAME,"%s","<033>&a200h7200V")
+        Writefile(L_FILE_NAME,"%s",l_arial_8)
+        Writefile(L_FILE_NAME,"%s",l_copyright_8)
+        Writefile(L_FILE_NAME,"%s",l_arial_8)
+        Writefile(L_FILE_NAME,"%s"," 2003 MSO, Inc.")
+        Writefile(L_FILE_NAME,"%s","<FF>")
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

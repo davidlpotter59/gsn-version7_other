@@ -1,0 +1,222 @@
+%%
+/*
+Date Written: April 17, 2002
+
+Name: fm300.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+04/23/2002             RMG              Pollution Exclusion Letter
+
+===========================
+*/
+
+Program
+  Name = "fm300";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+  String L_FILE_NAME[14] = "fm300.cq";
+  String L_COPY_NAME[20];
+  Unsigned Ascii Number L_LINE_COUNTER;
+
+  Include "csfonts.inc"
+  Include "sfsrevname.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+Access SFPNAME,
+          Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO,
+              SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR,
+              SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic;
+
+Access SFSCOMPANY,
+          Set SFSCOMPANY:COMPANY_ID   = SFPNAME:COMPANY_ID, Exact;
+
+/*
+I_FIRST_NAME = Trun(I_NAME[(Pos(SFPNAME:NAME,I_NAME)+1),
+               Len(I_NAME)])
+I_LAST_NAME = Trun(I_NAME[1,(Pos(SFPNAME:NAME,I_NAME)-1)])
+I_REV_NAME = Trun(I_FIRST_NAME) + " " + Trun(I_LAST_NAME)
+*/
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s",L_ARIAL_BOLD_14,"<033>&a2010h400V",
+                      "POLLUTION EXCLUSION",
+                      "<NL>","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s",L_ARIAL,"<033>&a200h+0V",
+                      "This endorsement forms a part of the policy to which ",
+                      "attached, effective on the inception date of the ",
+                      "policy unless","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s","<033>&a200h+0V","otherwise stated herein.",
+                      "<NL>","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s","<033>&a200h+0V",
+                      "(The following information is required only when this ",
+                      "endorsement is issued subsequent to preparation of ",
+                      "policy.)","<NL>","<NL>")
+
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s","<033>&a200h+0V",
+                      "Endorsement effective ", "<033>&a2100h+0V","Policy No. ",
+                      "<033>&a3600h+0V","Endorsement No. ","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%n%s%n%s","<033>&a200h+0V",
+                      Str(SFPNAME:EFF_DATE,"mm/dd/yyyy"),
+                      "<033>&a2100h+0V",SFPPRINT1:POLICY_NO,
+                      "<033>&a3600h+0V",SFPPRINT1:END_SEQUENCE,"<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a200h+0V","Named Insured","<NL>")
+
+I_NAME = SFPNAME:NAME[1]
+Include "sfsrevname.pro"
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a200h+0V",I_REV_NAME,"<NL>")
+If SFPNAME:NAME[2] <> "" Then
+  {
+    I_NAME = SFPNAME:NAME[2]
+    Include "sfsrevname.pro"
+    Writefile(L_FILE_NAME,"%s%s%s","<033>&a200h+0V",I_REV_NAME,"<NL>")
+  }
+If SFPNAME:NAME[3] <> "" Then
+  {
+    I_NAME = SFPNAME:NAME[3]
+    Include "sfsrevname.pro"
+    Writefile(L_FILE_NAME,"%s%s","<033>&a200h+0V",I_REV_NAME)
+  }
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s","<033>&a2200h2000V","Countersigned by",
+                      L_UNDERLINE_START,
+                      "                                                      ",
+                      "                          ",L_UNDERLINE_END,"<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s","<033>&a3500h+0V",
+                      "(Authorized Representative)","<NL>","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s","<033>&a200h+0V","This endorsement ",
+                      "modified such insurance as is afforded by the ",
+                      "provisions of the policy relating to the following:",
+                      "<NL>","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a1540h+0V",
+                      "BUSINESSOWNERS POLICY-LIABILITY INSURANCE","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a1530h+0V",
+                      "COMPREHENSIVE GENERAL LIABILITY INSURANCE","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a1180h+0V",
+                      "COMPLETED OPERATIONS AND PRODUCTS LIABILITY INSURANCE",
+                      "<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a1860h+0V",
+                      "CONTRACTUAL LIABILITY INSURANCE","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a1260h+0V",
+                      "MANUFACTURERS AND CONTRACTORS LIABILITY INSURANCE",
+                      "<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a1150h+0V",
+                      "OWNERS AND CONTRACTORS PROTECTIVE LIABILITY INSURANCE",
+                      "<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a1310h+0V",
+                      "OWNERS, LANDLORDS AND TENANTS LIABILITY INSURANCE",
+                      "<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s","<033>&a1500h+0V",
+                      "SPECIAL MULTI-PERIL POLICY-LIABILITY INSURANCE","<NL>",
+                      "<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "It is agreed that each and every exclusion and any ",
+                      "exception(s) to such exclusion forming a part of this ",
+                      "policy and","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "relating to the discharge, disbursal, release or ",
+                      "escape of smoke, vapors, soot, fumes, acid, alkalis, ",
+                      "toxic chemicals,","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "liquids or gases, waste materials or other irritants, ",
+                      "contaminants or pollutants are replaced in their ",
+                      "entirety by the","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s","<033>&a200h+0V",
+                      "following exclusion:","<NL>","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "The Company shall have no obligation under policy (1) ",
+                      "to investigate, settle or defend any claim or suit ",
+                      "against any","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "insured alleging actual or threatened injury or damage ",
+                      "of any nature or kind to persons or property which ",
+                      "arises","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "out of or would not have occurred but for the ",
+                      "pollution hazard; or (2) to pay any damages, ",
+                      "judgments, settlements,","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "losses, costs or expenses of any kind or nature that ",
+                      "may be awarded or incurred by reason of any such claim ",
+                      "or","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "suit or any such actual or threatened injury or ",
+                      "damage; (3) for any losses, costs or expenses arising ",
+                      "out of any obliga-","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "tion, order, direction or request, to test for, ",
+                      "monitor, clean up, remove, contain, treat, detoxify or ",
+                      "neutralize irritants,","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s","<033>&a200h+0V",
+                      "contaminants or pollutants.","<NL>","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s%s%s%s","<033>&a200h+0V",L_UNDERLINE_START,
+                      '"Pollution hazard"',L_UNDERLINE_END," means an actual ",
+                      "exposure or threat of exposure to the corrosive, toxic ",
+                      "or other harmful","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "properties of any solid, liquid, gaseous or thermal ",
+                      "pollutants, contaminants, irritants or toxic ",
+                      "substances, including","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "smoke, vapors, soot, fumes, acids or alkalis and waste ",
+                      "materials consisting of or containing any of the ",
+                      "foregoing aris-","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "ing out of the discharge, disbursal or release or ",
+                      "escape of any of the aforementioned irritants, ",
+                      "contaminants or pollutants","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s%s","<033>&a200h+0V",
+                      "into or upon land, the atmosphere or any water course ",
+                      "or body of water. Waste material includes any ",
+                      "materials which","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s%s%s","<033>&a200h+0V",
+                      "are intended to be or have been recycled, ",
+                      "reconditioned or reclaimed.","<NL>")
+
+Writefile(L_FILE_NAME,"%s%s","<033>&a200h7200V","Form FM 300 (1/90)")
+
+Screen Exit
+Closefile(L_FILE_NAME)
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+End

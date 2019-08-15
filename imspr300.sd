@@ -1,0 +1,557 @@
+%%
+Program
+        Name = "IMSPR300" ;
+        Type = "File" ;
+        Padcharacter = Space ;
+        Domain = "SFPPRINT" ;
+
+        Global Unsigned Ascii Number G_POLICY_NO[9] ,
+                                     G_YEAR[4] ,
+                                     G_END_SEQUENCE[4] ;
+
+        Local String L_MACRO[15]="" ,
+                     L_REPORT[15]="",
+                     L_COMPANY_ID[10]="",
+                     L_DESCRIPTION[50]="" ,
+                     L_FORM_EDITION[25]="" ,
+                     L_CSEXEC_NUMBER[12]="",
+                     L_FORM_PRINT[15],
+                     L_EDITION_PRINT[10],
+                     L_CODE[7]="" ,
+                     L_LOB_CODE[10]="SMP       ",
+                     L_USE_BATCH_MACRO[1]="N",
+                     L_MAILER[1]="N" ,
+                     l_lob_end_code[1]="",
+                     L_PARAMETER[20]="" ,
+                     l_first_mcl155[1]="Y",
+                     L_COPY_NAME[20]="" ,
+                     L_APP[3]="sfs" ,
+                     L_DEC[15]="" ,
+                     L_PRINT_SUPP[1] ;
+
+        Local Unsigned Ascii Number L_STATE[2],
+                                    L_LINE_OF_BUSINESS[4]=0008,
+                                    L_POLICY_NO[9]=1 ,
+                                    l_dont_print_agent_copy[1]=0,
+                                    L_SUB_CODE[4] ,
+                                    L_FORM[1]=0,
+                                    L_PREM_NO[4]=0,
+                                    L_BUILD_NO[4]=0,
+                                    L_PREMIUM[6]=0,
+                                    L_NO_COPIES[4]=0,
+                                    L_PRINTER[4]=0,
+                                    L_COPIES[4]=0 ,
+                                    L_PRINT[1]=0,
+                                    L_COPIES_PRINTED[3]=0 ;
+
+        local String L_HIT_CODE[1]="Y";
+        local String L_HOLD_CODE[7]="";
+        local string l_first[1]="Y" ;
+
+        local signed ascii number l_total_premium[6]=0 ;
+
+        Include "swsut100.var"
+
+        Include "STDKEYS.INC"
+
+Initialisation
+L_PRINTER = Val(COMMANDLINE[1,4])
+L_CSEXEC_NUMBER = COMMANDLINE[5,17]
+
+Do BEGIN_PROCESSING
+
+Update
+
+Errors
+Writefile("imspr300.err","%n<nl>",ERRORNUMBER)
+Writefile("imspr300.err","%s<nl>",ERRORTEXT)
+Closefile("imspr300.err")
+
+Procedure Definition
+
+Procedure BEGIN_PROCESSING
+Begin
+L_POLICY_NO = 0
+Access SFPPRINT1, Set SFPPRINT1:POLICY_NO = L_POLICY_NO, Approximate
+
+G_POLICY_NO = SFPPRINT1:POLICY_NO
+G_YEAR = SFPPRINT1:POL_YEAR
+G_END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+
+Access SFPNAME, Set SFPNAME:POLICY_NO = G_POLICY_NO,
+                    SFPNAME:POL_YEAR = G_YEAR,
+                    SFPNAME:END_SEQUENCE = G_END_SEQUENCE, Generic
+
+/* set number of copies so each person gets a copy of the dec
+   insured, home office, agent and copy (if loss payee) */
+
+/* this needs to stay at zero here it will get updated everytime anther copy
+   is processed */
+
+L_COPIES_PRINTED = 0
+
+Access SFPMASTER,
+   Set SFPMASTER:POLICY_NO    = G_POLICY_NO,
+       SFPMASTER:POL_YEAR     = G_YEAR,
+       SFPMASTER:END_SEQUENCE = G_END_SEQUENCE, Exact
+
+Access imppersim,
+   Set imppersim:POLICY_NO    = G_POLICY_NO,
+       imppersim:POL_YEAR     = G_YEAR,
+       imppersim:END_SEQUENCE = G_END_SEQUENCE, Generic
+
+l_state = imppersim:state
+l_line_of_business = imppersim:line_of_business
+access sfsagtprt, set sfsagtprt:company_id       = sfpname:company_id,
+                      sfsagtprt:agent_no         = sfpname:agent_no,
+                      sfsagtprt:state            = l_state,
+                      sfsagtprt:line_of_business = l_line_of_business, generic
+
+l_dont_print_agent_copy = 0
+while sfsagtprt:company_id       = sfpname:company_id and
+      sfsagtprt:agent_no         = sfpname:agent_no and
+      sfsagtprt:state            = l_state and
+      sfsagtprt:line_of_business = l_line_of_business
+        begin
+        if (sfpname:eff_date >= sfsagtprt:eff_date and
+           (sfpname:eff_date < sfsagtprt:exp_date or
+           sfsagtprt:exp_date = 0)) then
+            begin
+            switch(sfpmaster:trans_code)
+              case 14 : l_dont_print_agent_copy = sfsagtprt:dont_print_agent_copy_renewal
+              case 10 : l_dont_print_agent_copy = sfsagtprt:dont_print_agent_copy_new
+              case 11 : l_dont_print_agent_copy = sfsagtprt:dont_print_agent_copy_cx
+              case 16 : l_dont_print_agent_copy = sfsagtprt:dont_print_agent_copy_reins
+              default : l_dont_print_agent_copy = sfsagtprt:dont_print_agent_copy_endorse
+              end
+            end
+
+        next sfsagtprt
+        end
+
+if l_dont_print_agent_copy one of 1 then
+    begin
+    If SFPPRINT1:SCAN_HOME_OFFICE = 0 Then
+        L_NO_COPIES = 2
+    Else
+        L_NO_COPIES = 1
+    end
+else
+    begin
+    If SFPPRINT1:SCAN_HOME_OFFICE = 0 Then
+        L_NO_COPIES = 3 -- insured, agent, home office
+    Else
+        L_NO_COPIES = 2 -- insured, agent, scan home office
+    end
+
+/* l copies will get updated if any loss payee exists */
+
+L_COPIES = 0
+
+/* set l mailer to "N" so its prints a mailer page the first time thru but
+   will only print one for each policy */
+
+L_MAILER = "N"
+
+/* get number of copies that should be printed by line of business */
+
+Do GET_IMS_COPIES
+
+/* set macro and parameter file using csexec to keep it unique so we dont get
+   errors trying to create this file */
+
+L_PARAMETER = "sfpdecssfp.par"
+L_DEC = L_APP+Trun(L_CSEXEC_NUMBER)+".cq"
+L_MACRO = L_APP+Trun(L_CSEXEC_NUMBER)+".mf"
+
+/* create the macro */
+
+Do GET_MACRO
+
+/* end of begin_process */
+End
+
+Procedure GET_IMS_COPIES
+Begin
+Access SFPSUPP, Set SFPSUPP:POLICY_NO = G_POLICY_NO,
+                    SFPSUPP:POL_YEAR = G_YEAR,
+                    SFPSUPP:END_SEQUENCE = G_END_SEQUENCE, Generic
+
+L_PRINT_SUPP = "N"
+Repeat Begin
+    Exit If SFPSUPP:POLICY_NO <> G_POLICY_NO Or
+            SFPSUPP:POL_YEAR <> G_YEAR Or
+            SFPSUPP:END_SEQUENCE <> G_END_SEQUENCE
+
+    L_NO_COPIES = L_NO_COPIES + 1
+    L_COPIES = L_COPIES + 1
+    If (G_END_SEQUENCE = 0 Or
+       (SFPSUPP:OK_PRINT = "Y" And
+       G_END_SEQUENCE <> 0)) Then
+        L_PRINT_SUPP = "Y"
+
+    Next SFPSUPP
+    End
+
+L_SUB_CODE = 0
+Access SFPMASTER, Set SFPMASTER:POLICY_NO = G_POLICY_NO,
+                      SFPMASTER:POL_YEAR = G_YEAR,
+                      SFPMASTER:END_SEQUENCE = G_END_SEQUENCE, Exact
+
+access imppersim, set imppersim:policy_no = g_policy_no,
+                      imppersim:pol_year = g_year,
+                      imppersim:end_sequence = g_end_sequence, generic
+
+L_STATE = imppersim:state
+L_COMPANY_ID = SFPNAME:COMPANY_ID
+L_FORM = SFPMASTER:FORM
+Access SFSEND, Set SFSEND:COMPANY_ID = L_COMPANY_ID,
+                   SFSEND:STATE = L_STATE ,
+                   SFSEND:LINE_OF_BUSINESS = sfpname:LINE_OF_BUSINESS,
+                   SFSEND:FORM = L_FORM, Generic
+
+Repeat Begin
+    Exit If SFSEND:COMPANY_ID <> L_COMPANY_ID Or
+            SFSEND:STATE <> L_STATE Or
+            SFSEND:LINE_OF_BUSINESS <> sfpname:LINE_OF_BUSINESS Or
+            SFSEND:FORM <> L_FORM
+
+/* update sfpprint2 with the mandatory endorsements that should print on the
+   common dec page */
+
+    If (SFPNAME:EFF_DATE >= SFSEND:EFF_DATE and
+       (sfpname:eff_date <= sfsend:exp_date or
+       sfsend:exp_date = 0)) Then
+        Begin
+        If SFSEND:RENEWAL = 1 And
+           SFPMASTER:TRANS_CODE = 14 Then
+            Begin
+            If ((SFPNAME:EFF_DATE <= SFSEND:EXP_DATE Or
+               SFSEND:EXP_DATE = 0) And
+               SFPNAME:EFF_DATE >= SFSEND:RENEWAL_EFF_DATE) Then
+                Begin
+                Do SUBCODE
+                L_FORM_EDITION = SFSEND:FORM_EDITION
+                L_DESCRIPTION = SFSEND:DESCRIPTION
+                l_code = sfsend:code
+                l_lob_end_code = sfsend:end_lob_code
+                Do ADD_SFPPRINT2
+                End
+            End
+        else
+        If SFSEND:NEW = 1 And
+           SFPMASTER:TRANS_CODE = 10 Then
+            Begin
+            If ((SFPNAME:EFF_DATE < SFSEND:EXP_DATE Or
+               SFSEND:EXP_DATE = 0) And
+               SFPNAME:EFF_DATE >= SFSEND:NEW_EFF_DATE) Then
+                Begin
+                Do SUBCODE
+                l_code = sfsend:code
+                L_FORM_EDITION = SFSEND:FORM_EDITION
+                L_DESCRIPTION = SFSEND:DESCRIPTION
+                l_lob_end_code = sfsend:end_lob_code
+                Do ADD_SFPPRINT2
+                end
+            end
+        else
+            begin
+            Do SUBCODE
+            l_code = sfsend:code
+            L_FORM_EDITION = SFSEND:FORM_EDITION
+            L_DESCRIPTION = SFSEND:DESCRIPTION
+            l_lob_end_code = sfsend:end_lob_code
+            Do ADD_SFPPRINT2
+            end
+
+        End
+
+    Next SFSEND
+    End
+
+Access SFPEND, Set SFPEND:POLICY_NO = G_POLICY_NO,
+                   SFPEND:POL_YEAR = G_YEAR,
+                   SFPEND:END_SEQUENCE = G_END_SEQUENCE, Generic
+
+Repeat Begin
+    Exit If SFPEND:POLICY_NO <> G_POLICY_NO Or
+            SFPEND:POL_YEAR <> G_YEAR Or
+            SFPEND:END_SEQUENCE <> G_END_SEQUENCE
+
+        Do SUBCODE
+        L_CODE = SFPEND:CODE
+        L_PREM_NO = SFPEND:PREM_NO
+        L_BUILD_NO = SFPEND:BUILD_NO
+        L_FORM_EDITION = SFPEND:FORM_EDITION
+        L_DESCRIPTION = SFPEND:DESCRIPTION
+        if sfpend:manual_premium <> 0 then
+            l_total_premium = sfpend:manual_premium
+        else
+            l_total_premium = sfpend:premium
+        l_lob_end_code = sfpend:lob_end_code
+        Do ADD_SFPPRINT2
+
+    Next SFPEND
+    End
+
+/* end of get_ims_copies */
+End
+
+Procedure ADD_SFPPRINT2
+Begin
+
+Add SFPPRINT2
+    Begin
+    SFPPRINT2:POLICY_NO = G_POLICY_NO
+    SFPPRINT2:POL_YEAR = G_YEAR
+    SFPPRINT2:END_SEQUENCE = G_END_SEQUENCE
+    SFPPRINT2:SUB_CODE = L_SUB_CODE
+    sfpprint2:code = l_code
+    SFPPRINT2:FORM_EDITION = L_FORM_EDITION
+    SFPPRINT2:DESCRIPTION = L_DESCRIPTION
+    End
+
+-- End of add_sfpprint2
+End
+
+Procedure ADD_SFPPRINT3
+Begin
+Access SFPPRINT3, Set SFPPRINT3:POLICY_NO = G_POLICY_NO,
+                      SFPPRINT3:POL_YEAR = G_YEAR,
+                      SFPPRINT3:END_SEQUENCE = G_END_SEQUENCE,
+                      SFPPRINT3:PREM_NO = L_PREM_NO,
+                      SFPPRINT3:BUILD_NO = L_BUILD_NO,
+                      SFPPRINT3:CODE = L_CODE, Generic
+
+If SFPPRINT3:POLICY_NO <> G_POLICY_NO Or
+   SFPPRINT3:POL_YEAR <> G_YEAR Or
+   SFPPRINT3:END_SEQUENCE <> G_END_SEQUENCE Or
+   SFPPRINT3:PREM_NO <> L_PREM_NO Or
+   SFPPRINT3:BUILD_NO <> L_BUILD_NO Or
+   SFPPRINT3:CODE <> L_CODE Then
+    Add SFPPRINT3
+        Begin
+        SFPPRINT3:POLICY_NO = G_POLICY_NO
+        SFPPRINT3:POL_YEAR = G_YEAR
+        SFPPRINT3:END_SEQUENCE = G_END_SEQUENCE
+        SFPPRINT3:PREM_NO = L_PREM_NO
+        SFPPRINT3:BUILD_NO = L_BUILD_NO
+        SFPPRINT3:CODE = L_CODE
+        SFPPRINT3:FORM_EDITION = L_FORM_EDITION
+        SFPPRINT3:DESCRIPTION = L_DESCRIPTION
+        SFPPRINT3:PRINT_FORM  = "Y"
+        sfpprint3:lob_end_code = l_lob_end_code
+        sfpprint3:total_premium = l_total_premium
+
+        L_HOLD_CODE = SFPPRINT3:CODE
+        L_HIT_CODE  = "N"
+
+        Do CHECK_FOR_DUP_CODE
+
+        If L_HIT_CODE = "Y" Then
+        {
+           SFPPRINT3:PRINT_FORM = "N"
+        }
+        Else
+        {
+           SFPPRINT3:PRINT_FORM = "Y"
+        }
+
+        End
+
+-- End of add_sfpprint3
+End
+
+Procedure CHECK_FOR_DUP_CODE
+Begin
+Access SFPPRINT3_FORM, Set SFPPRINT3_FORM:POLICY_NO = G_POLICY_NO,
+                           SFPPRINT3_FORM:POL_YEAR = G_YEAR,
+                           SFPPRINT3_FORM:END_SEQUENCE = G_END_SEQUENCE, Approximate
+
+While SFPPRINT3_FORM:POLICY_NO = G_POLICY_NO And
+      SFPPRINT3_FORM:POL_YEAR  = G_YEAR And
+      SFPPRINT3_FORM:END_SEQUENCE = G_END_SEQUENCE
+      Begin
+      If SFPPRINT3_FORM:CODE = L_HOLD_CODE Then
+          { L_HIT_CODE = "Y" }
+      Next SFPPRINT3_FORM
+      End
+
+End -- end of check for dup code
+
+Procedure SUBCODE
+Begin
+/* get sub code to update sfpprint2 to keep key unique */
+
+Access SFPPRINT2_ALIAS, Set SFPPRINT2_ALIAS:POLICY_NO = G_POLICY_NO,
+                            SFPPRINT2_ALIAS:POL_YEAR = G_YEAR,
+                            SFPPRINT2_ALIAS:END_SEQUENCE = G_END_SEQUENCE, Generic
+
+L_SUB_CODE = 0
+Repeat Begin
+    Exit If SFPPRINT2_ALIAS:POLICY_NO <> G_POLICY_NO Or
+            SFPPRINT2_ALIAS:POL_YEAR <> G_YEAR Or
+            SFPPRINT2_ALIAS:END_SEQUENCE <> G_END_SEQUENCE
+
+        L_SUB_CODE = SFPPRINT2_ALIAS:SUB_CODE
+
+    Next SFPPRINT2_ALIAS
+    End
+
+L_SUB_CODE = L_SUB_CODE + 10
+
+/* end of subcode */
+End
+
+Procedure GET_MACRO
+Begin
+L_COPIES_PRINTED = 1
+Repeat Begin
+    Exit If L_COPIES_PRINTED > L_NO_COPIES
+
+/* set copies and print the appropriate copy */
+
+    if l_dont_print_agent_copy one of 1 then
+        begin
+        If SFPPRINT1:SCAN_HOME_OFFICE = 0 Then
+            Begin
+            Switch(L_COPIES_PRINTED)
+              Case 1  : L_COPY_NAME = "Original"
+              Case 2  : L_COPY_NAME = "Home Office"
+              Default : L_COPY_NAME = "Copy"
+              End
+            End
+        Else
+            Begin
+            Switch(L_COPIES_PRINTED)
+              Case 1  : L_COPY_NAME = "Original"
+              Default : L_COPY_NAME = "Copy"
+              End
+            End
+        end
+    else
+        begin
+        If SFPPRINT1:SCAN_HOME_OFFICE = 0 Then
+            Begin
+            Switch(L_COPIES_PRINTED)
+              Case 1  : L_COPY_NAME = "Original"
+              Case 2  : L_COPY_NAME = "Agent's Copy"
+              Case 3  : L_COPY_NAME = "Home Office"
+              Default : L_COPY_NAME = "Copy"
+              End
+            End
+        Else
+            Begin
+            Switch(L_COPIES_PRINTED)
+              Case 1  : L_COPY_NAME = "Original"
+              Case 2  : L_COPY_NAME = "Agent's Copy"
+              Default : L_COPY_NAME = "Copy"
+              End
+            End
+        end
+
+/* need l_copy_name and l_proxy_date for printing of reports each report needs
+   this to accept the parameter file */
+
+    L_PARAMETER = "sfpdecssfp.par"
+    Deletefile(L_PARAMETER)
+    Writefile (L_PARAMETER,"%S",L_COPY_NAME)
+    Writefile (L_PARAMETER,"<NL>")
+    Closefile(L_PARAMETER)
+
+    Access SFPMASTER, Set SFPMASTER:POLICY_NO = G_POLICY_NO,
+                          SFPMASTER:POL_YEAR = G_YEAR,
+                          SFPMASTER:END_SEQUENCE = G_END_SEQUENCE, Generic
+
+    Access SFPNAME, Set SFPNAME:POLICY_NO = G_POLICY_NO,
+                        SFPNAME:POL_YEAR = G_YEAR,
+                        SFPNAME:END_SEQUENCE = G_END_SEQUENCE, Exact
+
+    L_STATE            = SFPMASTER:STATE
+    L_COMPANY_ID       = SFPNAME:COMPANY_ID
+    access sfsline, set sfsline:company_id = sfpname:company_id,
+                        sfsline:line_of_business = sfpname:line_of_business,
+                        sfsline:lob_subline = "00", generic
+
+    l_lob_code = sfsline:lob_code
+    Access SCIPSCONTROL, Set SCIPSCONTROL:COMPANY_ID = L_COMPANY_ID,
+                             SCIPSCONTROL:STATE      = L_STATE,
+                             SCIPSCONTROL:LOB_CODE   = L_LOB_CODE, Generic
+
+    If SFSLINE:LOB_CODE one of "PINLAND" Then
+      Begin
+        L_USE_BATCH_MACRO = "N"
+        If SCIPSCONTROL:USE_BATCH_FOR_ENDORSEMENTS = 1 Then
+          {
+            L_USE_BATCH_MACRO = "Y"
+          }
+        Else
+          {
+            L_USE_BATCH_MACRO = "N"
+          }
+
+        Include "imspr301.inc" -- print cpp dec pages
+      End
+
+   L_COPIES_PRINTED = L_COPIES_PRINTED + 1
+   End
+
+/* end of get_macro */
+End
+
+Procedure ENDORSEMENT_PRINT
+Begin
+If L_PRINT = 1 Then
+    Begin
+    If L_USE_BATCH_MACRO = "Y" Then
+        Begin
+        Include "sfsmacro1.inc"
+        End
+    Else
+        Begin
+        Include "sfsmacro.inc"
+        End
+    End
+
+End
+
+Procedure ACCESS_SFSOPTEND
+Begin
+Access SFSOPTEND, Set SFSOPTEND:COMPANY_ID = sfpname:COMPANY_ID,
+                      SFSOPTEND:STATE = L_STATE,
+                      SFSOPTEND:LINE_OF_BUSINESS = sfpname:LINE_OF_BUSINESS,
+                      SFSOPTEND:CODE = L_CODE, Generic
+
+Repeat Begin
+    Exit If SFSOPTEND:COMPANY_ID       <> sfpname:COMPANY_ID Or
+            SFSOPTEND:STATE            <> L_STATE Or
+            SFSOPTEND:LINE_OF_BUSINESS <> sfpname:LINE_OF_BUSINESS Or
+            SFSOPTEND:CODE             <> L_CODE
+
+    If SFPNAME:EFF_DATE >= SFSOPTEND:EFF_DATE Then
+        Begin
+        L_PRINT         = SFSOPTEND:PRINT_FORM
+        L_FORM_EDITION  = SFSOPTEND:FORM_EDITION
+        L_FORM_PRINT    = SFSOPTEND:FORM_PRINT
+        L_EDITION_PRINT = SFSOPTEND:EDITION_PRINT
+        l_report        = sfsoptend:form_file_name
+        End
+
+    Next SFSOPTEND
+    End
+
+Deletefile(L_PARAMETER)
+Writefile (L_PARAMETER,"%s",L_COPY_NAME)
+Writefile (L_PARAMETER,"<NL>")
+Writefile (L_PARAMETER,"%s",L_FORM_PRINT)
+Writefile (L_PARAMETER,"<NL>")
+Writefile (L_PARAMETER,"%s",L_EDITION_PRINT)
+Writefile (L_PARAMETER,"<NL>")
+Writefile (L_PARAMETER,"%n",L_PREMIUM)
+Writefile (L_PARAMETER,"<NL>")
+Closefile (L_PARAMETER)
+
+End
+
+/* end of file */
+End

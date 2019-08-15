@@ -1,0 +1,171 @@
+%%                                 
+/*
+Date Written: August 8, 2006
+
+Name: cm2002_111985.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+08/08/2006             JES                 Initial Setup
+10/11/2006             JLB                 Cleaned up code
+==============================================================
+*/
+
+Program
+  Name = "cm2002_111985";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[16] = "cm2002_111985.cq";
+ String L_FONT[35];
+ String L_COPY_NAME[20] ;
+ String L_SFPLOCATION_ZIP;
+ String L_cppendorse1_ZIP;
+ Unsigned ascii number l_max_lines;
+ Unsigned ascii number l_page_counter;
+ Unsigned Ascii Number L_YEAR[4];
+ Unsigned Ascii number L_LINE_OF_BUSINESS[4];
+ Unsigned ascii number l_found[1];
+ Unsigned Ascii Number L_ITEM_COUNTER;
+ Unsigned Ascii Number L_STATE[2]=0;
+ Unsigned Ascii Number L_LOOP;
+ wdate L_EFF_DATE;
+ Unsigned Ascii Number L_LINE_COUNTER;
+ Unsigned Ascii Number L_PAGE_NUMBER;
+
+   Include "csfonts.inc"
+   Include "swsut100.var"
+   Include "swsut200.var"
+   Include "swsut300.var"
+   Include "line_spacing.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+Access SFPNAME,
+   Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access sfpmaster,
+   Set sfpmaster:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       sfpmaster:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       sfpmaster:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFPEND,
+   Set SFPEND:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPEND:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPEND:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+   Include "swsut100.inc"
+   I_CODE = "CM2002"
+   Include "swsut200.inc"
+ --Include "swsut300.var"
+   L_page_counter=1
+
+While SFPEND:POLICY_NO    = SFPPRINT1:POLICY_NO And
+      SFPEND:POL_YEAR     = SFPPRINT1:POL_YEAR And
+      SFPEND:END_SEQUENCE = SFPPRINT1:END_SEQUENCE
+{
+  If SFPEND:CODE = I_CODE Then
+    {
+      L_STATE            = sfpmaster:STATE
+      L_COMPANY_ID       = sfpname:COMPANY_ID
+      If sfpname:company_id = "LEBINS" then
+        L_LINE_OF_BUSINESS = 0008
+      else
+         L_LINE_OF_BUSINESS = sfpname:line_of_business
+
+      Access SFSOPTEND,
+         Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+             SFSOPTEND:STATE            = L_STATE,
+             SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+             SFSOPTEND:CODE             = I_CODE, generic
+
+       While SFSOPTEND:COMPANY_ID       = L_COMPANY_ID and
+             SFSOPTEND:STATE            = L_STATE and
+             SFSOPTEND:LINE_OF_BUSINESS = l_LINE_OF_BUSINESS and
+             SFSOPTEND:CODE             = I_CODE
+
+         {  --start of sfsoptend check
+           If (sfpname:eff_date >= sfsoptend:eff_date and
+              (sfpname:eff_date < sfsoptend:exp_date or
+               sfsoptend:exp_date = 0)) then
+             {
+               l_eff_date = sfsoptend:eff_date
+             }
+           next sfsoptend
+         }
+
+      Access SFSOPTEND,
+         Set SFSOPTEND:COMPANY_ID       = L_COMPANY_ID,
+             SFSOPTEND:STATE            = L_STATE,
+             SFSOPTEND:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+             SFSOPTEND:CODE             = I_CODE,
+             SFSOPTEND:EFF_DATE         = L_EFF_DATE, generic
+
+
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      Writefile(L_FILE_NAME,"%s","<033>&a4000h+120V")
+      Writefile(L_FILE_NAME,"%s","COMMERCIAL INLAND MARINE")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a440h+360V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_12)
+      Writefile(L_FILE_NAME,"%s","THIS ENDORSEMENT CHANGES THE POLICY.  PLEASE READ IT CAREFULLY.")
+      Writefile(L_FILE_NAME,"%s","<033>&a1440h+300V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_bold_18)
+      Writefile(L_FILE_NAME,"%s","LIST OF PROPERTY ON FILE")
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+300V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      Writefile(L_FILE_NAME,"%s","This endorsement modifies insurance provided under the following: ")
+      Writefile(L_FILE_NAME,"%s","<033>&a320h+240V")
+      Writefile(L_FILE_NAME,"%s","COMMERCIAL ARTICLES COVERAGE FORM")
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+480V")
+      Writefile(L_FILE_NAME,"%s","We cover property that is described individually on the list:")
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+180V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+      Writefile(L_FILE_NAME,"%s","1.  ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      Writefile(L_FILE_NAME,"%s","Dated; and")
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+180V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+      Writefile(L_FILE_NAME,"%s","2.  ")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      Writefile(L_FILE_NAME,"%s","On file at the premises;")
+      Writefile(L_FILE_NAME,"%s","<033>&a200h+180V")
+      Writefile(L_FILE_NAME,"%s","as shown in the Declarations.  We must also sign and date this list.")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+      Writefile(L_FILE_NAME,"%s","<033>&a200h7200V")
+      Writefile(L_FILE_NAME,"%s",Trun(sfsoptend:form_print))
+      Writefile(L_FILE_NAME,"%s"," ")
+      Writefile(L_FILE_NAME,"%s",sfsoptend:edition_print)
+
+      Writefile(L_FILE_NAME,"%s","<033>&a1900h7200V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      Writefile(L_FILE_NAME,"%s","Copyright, Insurance Services Office, Inc., 1984")
+
+      Writefile(L_FILE_NAME,"%s","<033>&a5000h7200V")
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_9)
+      Writefile(L_FILE_NAME,"%s","Page ")
+      Writefile(L_FILE_NAME,"%n",L_page_counter)
+      Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+      L_page_counter=L_page_counter+1
+
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h7137V<033>*c53h4v0P") --top horizontal line
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h+0V<033>*c2a27b0P")  --left vertical line
+      Writefile(L_FILE_NAME,"%s","<033>&a5553h+0V<033>*c2a27b0P")  --right vertica
+      Writefile(L_FILE_NAME,"%s","<033>&a5500h7200V<033>*c53h4v0P")
+      Writefile(L_FILE_NAME,"%s","<FF>")
+    }
+  Next SFPEND
+}
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

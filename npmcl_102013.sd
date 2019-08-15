@@ -1,0 +1,174 @@
+%%
+/*
+Date Written: ANovember 5, 2013
+
+Name: npmcl_102013.sd
+
+Copyright (c) 2013, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+11/05/2013            JLB             New policyholders notice NPMCL
+===========================
+*/
+
+Program
+  Name = "npmcl_102013";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+ String L_FILE_NAME[15] = "npmcl_102013.cq";
+ Unsigned ascii number L_PAGE_COUNTER=0,
+                       l_max_lines,
+                       l_line_counter=0,
+                       l_form[4],
+                       l_state[2]=0,
+                       l_line_of_business[4],
+                       l_epl_prem;
+ String L_COMPANY_ID[10];
+
+ wdate l_eff_date;
+
+   Include "csfonts.inc"
+   Include "swsut100.var"
+   Include "swsut200.var"
+   Include "center2.var"
+
+Initialization
+  Deletefile (L_FILE_NAME);
+
+Update
+
+access sfpmaster,
+   set sfpmaster:policy_no = sfpprint1:policy_no,
+       sfpmaster:pol_year  = sfpprint1:pol_year,
+       sfpmaster:end_sequence = sfpprint1:end_sequence, generic
+
+Access SFPNAME,
+   Set SFPNAME:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPNAME:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPNAME:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFPmaster,
+   Set SFPmaster:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       SFPmaster:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       SFPmaster:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access sfpend_alias,
+   Set sfpend_alias:POLICY_NO    = SFPPRINT1:POLICY_NO ,
+       sfpend_alias:POL_YEAR     = SFPPRINT1:POL_YEAR ,
+       sfpend_alias:END_SEQUENCE = SFPPRINT1:END_SEQUENCE, Generic
+
+Access SFSLINE,
+   Set SFSLINE:COMPANY_ID       = SFPNAME:COMPANY_ID,
+       SFSLINE:LINE_OF_BUSINESS = SFPNAME:LINE_OF_BUSINESS,
+       SFSLINE:LOB_SUBLINE      = "00", exact
+
+   Include "swsut100.inc"
+   I_CODE = "NPMCL"
+   Include "swsut200.inc"
+
+l_page_counter = 1
+
+If sfpmaster:trans_code = 14 then
+  {
+     l_state            = sfpmaster:state
+     L_COMPANY_ID       = sfpname:COMPANY_ID
+     L_LINE_OF_BUSINESS = sfsline:rating_LINE_OF_BUSINESS
+
+    Access sfsend,
+       Set sfsend:COMPANY_ID       = L_COMPANY_ID,
+           sfsend:STATE            = L_STATE,
+           sfsend:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+           sfsend:form             = l_form,
+           sfsend:CODE             = I_CODE, generic
+
+     While sfsend:COMPANY_ID       = L_COMPANY_ID and
+           sfsend:STATE            = L_STATE and
+           sfsend:LINE_OF_BUSINESS = l_LINE_OF_BUSINESS and
+           sfsend:form             = l_form and
+           sfsend:CODE             = I_CODE
+
+       {  --start of sfsend check
+         If (sfpname:eff_date >= sfsend:eff_date and
+            (sfpname:eff_date < sfsend:exp_date or
+             sfsend:exp_date = 0)) then
+           {
+             l_eff_date = sfsend:eff_date
+           }
+         next sfsend
+       }
+
+    Access sfsend,
+       Set sfsend:COMPANY_ID       = L_COMPANY_ID,
+           sfsend:STATE            = L_STATE,
+           sfsend:LINE_OF_BUSINESS = L_LINE_OF_BUSINESS,
+           sfsend:form             = l_form,
+           sfsend:CODE             = I_CODE,
+           sfsend:EFF_DATE         = L_EFF_DATE, exact
+
+    L_STRING = "NOTICE TO POLICYHOLDERS"
+    L_FONT = L_ARIAL_bold_12
+    L_PITCH_HALF = 6
+    L_PITCH_FULL = 12
+    L_VERTICAL_POS = "+600"
+    L_HORIZONTAL_POS = "2880"
+    Include "center3.pro"
+
+    L_STRING = "REVISED TERRORISM ENDORSEMENT"
+    L_FONT = L_ARIAL_bold_12
+    L_PITCH_HALF = 6
+    L_PITCH_FULL = 12
+    L_VERTICAL_POS = "+130"
+    L_HORIZONTAL_POS = "2880"
+    Include "center3.pro"
+
+    Writefile(L_FILE_NAME,"%s","<033>&a550h+260V")
+    Writefile(L_FILE_NAME,"%s",l_arial)
+    Writefile(L_FILE_NAME,"%s","If your renewal policy lists any of the following endorsements on the renewal Declarations, ")
+    Writefile(L_FILE_NAME,"%s","<033>&a1200h+130V")
+    Writefile(L_FILE_NAME,"%s","MCL 760 ")
+    Writefile(L_FILE_NAME,"%s","<033>&a1200h+130V")
+    Writefile(L_FILE_NAME,"%s","MCL 761 ")
+    Writefile(L_FILE_NAME,"%s","<033>&a1200h+130V")
+    Writefile(L_FILE_NAME,"%s","MCL 762 ")
+    Writefile(L_FILE_NAME,"%s","<033>&a1200h+130V")
+    Writefile(L_FILE_NAME,"%s","MCL 763 ")
+
+    Writefile(L_FILE_NAME,"%s","<033>&a550h+200V")
+    Writefile(L_FILE_NAME,"%s","the endorsement includes, as Section B, a terrorism exclusion that will become effective on January")
+    Writefile(L_FILE_NAME,"%s","<033>&a550h+130V")
+    Writefile(L_FILE_NAME,"%s","1, 2015 if the federal Terrorism Risk Insurance Program Reauthorization Act of 2007 (TRIPRA) is")
+    Writefile(L_FILE_NAME,"%s","<033>&a550h+130V")
+    Writefile(L_FILE_NAME,"%s","not extended by that date. This exclusion will replace the TRIA provisions, designated as Section")
+    Writefile(L_FILE_NAME,"%s","<033>&a550h+130V")
+    Writefile(L_FILE_NAME,"%s","A, in this endorsement. ")
+
+    Writefile(L_FILE_NAME,"%s","<033>&a550h+240V")
+    Writefile(L_FILE_NAME,"%s","No coverage is provided by this notice, nor can it be construed to replace any provision of your")
+    Writefile(L_FILE_NAME,"%s","<033>&a550h+130V")
+    Writefile(L_FILE_NAME,"%s","policy. You should read your policy and any related endorsements and review your declarations")
+    Writefile(L_FILE_NAME,"%s","<033>&a550h+130V")
+    Writefile(L_FILE_NAME,"%s","page for complete information on the coverages you are provided. If there is any conflict between")
+    Writefile(L_FILE_NAME,"%s","<033>&a550h+130V")
+    Writefile(L_FILE_NAME,"%s","the policy and this notice, the provisions of the policy shall prevail.")
+
+    Writefile(L_FILE_NAME,"%s","<033>&a550h+240V")
+    Writefile(L_FILE_NAME,"%s","Contact your agent if you have any questions. ")
+
+    Writefile(L_FILE_NAME,"%s","<033>&a4050h6800V")
+    Writefile(L_FILE_NAME,"%s",l_arial_9)
+    Writefile(L_FILE_NAME,"%s","NP-MCL Terrorism")
+    Writefile(L_FILE_NAME,"%s","<033>&a+30h-30V")
+    Writefile(L_FILE_NAME,"%s","<033>*c50h6v0P")
+    Writefile(L_FILE_NAME,"%s","<033>&a+75h+30V")
+    Writefile(L_FILE_NAME,"%s","10 13 ")
+    Writefile(L_FILE_NAME,"%s"," ")
+    Writefile(L_FILE_NAME,"%s","<FF>")
+  }
+Screen Exit
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

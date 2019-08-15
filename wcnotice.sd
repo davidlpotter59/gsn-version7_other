@@ -1,0 +1,154 @@
+%%
+/*
+Date Written: May 28, 2002
+
+Name: wcnotice.sd
+
+Copyright (c) 2000, SCIPS.com Inc.
+
+Modify
+Date                   By                  Comment
+--------------------------------------------------------------
+05/28/2002             RMG
+
+===========================
+*/
+
+Program
+  Name = "wcnotice";
+  Type = "File";
+  Domain = "SFPPRINT1";
+  Padcharacter = Space;
+
+  String L_FILE_NAME[11] = "wcnotice.cq",
+         l_user_id[15]="" ;
+
+  Unsigned ascii number l_loop[1] ,
+                        l_printer[4]=0;
+
+  Include "csfonts.inc"
+
+  include "sfsrevname.var"
+
+Initialization
+l_printer = val(commandline[1,4])
+l_user_id = username
+
+Deletefile (L_FILE_NAME);
+
+Update
+
+access sfpname, set sfpname:policy_no = sfpprint1:policy_no,
+                    sfpname:pol_year = sfpprint1:pol_year,
+                    sfpname:end_sequence = sfpprint1:end_sequence, generic
+
+access wcsdefault, set wcsdefault:company_id = sfpname:company_id, generic
+
+access sfscompany, set sfscompany:company_id = sfpname:company_id, generic
+
+access sfsprinter, set sfsprinter:company_id = sfpname:company_id,
+                       sfsprinter:user_id = l_user_id,
+                       sfsprinter:printer_no = l_printer, generic
+
+writefile(l_file_name,"%s%n%s","<033>&l",sfsprinter:tray[3],"H")
+Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_68)
+
+Writefile(L_FILE_NAME,"%s%s%s%s","<033>&a1650h800V",
+          "<033>&a+0h+30V<033>*c2570h30v0P","<033>&a+0h-30V","NOTICE")
+
+Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_24)
+
+Writefile(L_FILE_NAME,"%s","<033>&a300h+650V")
+Writefile(L_FILE_NAME,"%s","<033>&k15.3H")
+Writefile(L_FILE_NAME,"%s","The  undersigned employer  hereby  gives")
+
+Writefile(L_FILE_NAME,"%s","<033>&a300h+320V")
+Writefile(L_FILE_NAME,"%s","<033>&k11.5H")
+Writefile(L_FILE_NAME,"%s","notice that the payment of compensation to")
+
+Writefile(L_FILE_NAME,"%s","<033>&a300h+320V")
+Writefile(L_FILE_NAME,"%s","<033>&k15.4H")
+Writefile(L_FILE_NAME,"%s","employees and their dependents has been")
+
+Writefile(L_FILE_NAME,"%s","<033>&a300h+320V")
+Writefile(L_FILE_NAME,"%s","<033>&k11.7H")
+Writefile(L_FILE_NAME,"%s","secured    in    accordance   with   the   pro-")
+
+Writefile(L_FILE_NAME,"%s","<033>&a300h+320V")
+Writefile(L_FILE_NAME,"%s","<033>&k7.6H")
+Writefile(L_FILE_NAME,"%s","visions of the Employer's Liability Insurance")
+
+Writefile(L_FILE_NAME,"%s","<033>&a300h+320V")
+Writefile(L_FILE_NAME,"%s","<033>&k12.1H")
+Writefile(L_FILE_NAME,"%s","Law, Title 34, Chapter 15, Article 5, Revised")
+
+Writefile(L_FILE_NAME,"%s","<033>&a300h+320V")
+Writefile(L_FILE_NAME,"%s","<033>&k18.1H")
+Writefile(L_FILE_NAME,"%s","Statutes New Jersey, by insuring with the")
+
+Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_24)
+
+--Writefile(L_FILE_NAME,"%s%s","<033>&a650h+450V","FARMERS MUTUAL FIRE INSURANCE")
+--Writefile(L_FILE_NAME,"%s%s","<033>&a1025h+220V","COMPANY OF SALEM COUNTY")
+if wcsdefault:company_name[1] = "" then
+    begin
+    Writefile(L_FILE_NAME,"%s%s","<033>&a650h+450V",sfscompany:name[1])
+    Writefile(L_FILE_NAME,"%s%s","<033>&a1025h+220V",sfscompany:name[2])
+    end
+else
+    begin
+    Writefile(L_FILE_NAME,"%s%s","<033>&a650h+450V",wcsdefault:company_name[1])
+    Writefile(L_FILE_NAME,"%s%s","<033>&a1025h+220V",wcsdefault:company_name[2])
+    end
+
+Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_24)
+
+Writefile(L_FILE_NAME,"%s%s","<033>&a2150h+420V","for the period")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a300h+420V","Beginning ",str(sfpname:eff_date,"MM/DD/YYYY"))
+--Writefile(L_FILE_NAME,"%s%s","<033>&a+0h+10V<033>*c1330h15v0P","<033>&a+0h-10V")
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a3000h+0V","Ending ",str(sfpname:exp_date,"MM/DD/YYYY"))
+--Writefile(L_FILE_NAME,"%s%s","<033>&a+0h+10V<033>*c1420h15v0P","<033>&a+0h-10V")
+
+Writefile(L_FILE_NAME,"%s",L_ARIAL_BOLD_18)
+
+For L_LOOP = 1 To 1
+  {
+    I_NAME=SFPNAME:NAME[L_LOOP,1,40]
+    Include "sfsrevname.pro"
+    If SFPNAME:NAME[L_LOOP] <> "" Then
+      {
+      Writefile(L_FILE_NAME,"%s%s%s","<033>&a300h+380V","Employer ",i_rev_name)
+--        Writefile(L_FILE_NAME,"%s","<033>&a350h+0V")
+--        Writefile(L_FILE_NAME,"%s",I_REV_NAME)
+--        Writefile(L_FILE_NAME,"%s","<NL>")
+--        L_INSURED_COUNTER = L_INSURED_COUNTER +1
+--        L_LINE_COUNTER = L_LINE_COUNTER + 1
+      }
+  }
+
+--Writefile(L_FILE_NAME,"%s%s%s","<033>&a300h+380V","Employer ",sfpname:name[1])
+--Writefile(L_FILE_NAME,"%s%s","<033>&a+0h+10V<033>*c3840h15v0P","<033>&a+0h-10V")
+
+Writefile(L_FILE_NAME,"%s",L_ARIAL_ITALIC_BOLD_14)
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a1100h+420V","<033>&k13.7H",
+          "In accordance with the above cited law, notice of")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a1100h+200V","<033>&k15H",
+          "compliance must be posted and maintained con-")
+
+Writefile(L_FILE_NAME,"%s%s%s","<033>&a1100h+200V","<033>&k8.2H",
+          "spicuously in and about the employer's workplaces.")
+
+Writefile(L_FILE_NAME,"%s","<033>&a1100h+100V<033>*c3540h15v0P")
+
+Writefile(L_FILE_NAME,"%s",L_ARIAL_9)
+Writefile(L_FILE_NAME,"%s","<033>&a300h+1000V")
+Writefile(L_FILE_NAME,"%s","Form 16NJ A")
+
+Screen Exit
+writefile(l_file_name,"%s%n%s","<033>&l",sfsprinter:tray2[1],"H")
+Writefile(L_FILE_NAME,"%s%s",L_FORMFEED ,L_RESET )
+Closefile(L_FILE_NAME)
+End

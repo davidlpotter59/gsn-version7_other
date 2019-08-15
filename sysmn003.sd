@@ -1,0 +1,43 @@
+*------------------------------------------------------------------------------*
+|                                                                              |
+|                           1. All                                             |
+|                           2. Premiums                                        |
+|                           3. Losses                                          |
+|                                                                              |
+|                                  __                                          |
+*------------------------------------------------------------------------------*
+%%
+Screen
+        Name = "sysmn003" ;
+        Type = "Menu" ;
+        Include "MENUKEYS.INC"
+        Screensize = "dynamic";
+        Windowtitle="%a     %s Stats Menu     %m";
+
+        Global String G_LIB[10] ;
+        Global Unsigned Ascii Number G_POLICY_NO[9];
+        String L_ENTER[1];
+
+Functions
+1       Display "sfsmt903" ;
+2       Display "sfsmt903a" ;
+3       display "sfsmt903b" ;
+
+97      Display "sysmn001" ;
+98      Stop ;
+99      Continue Begin
+                 If G_LIB = "" Then
+                     Begin
+                     Warning "You are about to exit, press CANCEL to exit"
+                     If Abort = "NO" Then
+                         FUNCTION = "98"
+                     End
+                 Else
+                     FUNCTION = "97"
+                 End ;
+
+Fields
+        FUNCTION ;
+
+
+End
